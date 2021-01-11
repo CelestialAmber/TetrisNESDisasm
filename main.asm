@@ -4463,33 +4463,33 @@ ending_typeBConcertPatchToPpuForHeight:
         sta     patchToPpuAddr
         jsr     patchToPpu
 @height0:
-        lda     #$A8
+        lda     #>ending_patchToPpu_typeBConcertHeight0
         sta     patchToPpuAddr+1
-        lda     #$34
+        lda     #<ending_patchToPpu_typeBConcertHeight0
         sta     patchToPpuAddr
         jsr     patchToPpu
 @height1:
-        lda     #$A8
+        lda     #>ending_patchToPpu_typeBConcertHeight1
         sta     patchToPpuAddr+1
-        lda     #$4A
+        lda     #<ending_patchToPpu_typeBConcertHeight1
         sta     patchToPpuAddr
         jsr     patchToPpu
 @height2:
-        lda     #$A8
+        lda     #>ending_patchToPpu_typeBConcertHeight2
         sta     patchToPpuAddr+1
-        lda     #$62
+        lda     #<ending_patchToPpu_typeBConcertHeight2
         sta     patchToPpuAddr
         jsr     patchToPpu
 @height3:
-        lda     #$A8
+        lda     #>ending_patchToPpu_typeBConcertHeight3
         sta     patchToPpuAddr+1
-        lda     #$7A
+        lda     #<ending_patchToPpu_typeBConcertHeight3
         sta     patchToPpuAddr
         jsr     patchToPpu
 @height4:
-        lda     #$A8
+        lda     #>ending_patchToPpu_typeBConcertHeight4
         sta     patchToPpuAddr+1
-        lda     #$96
+        lda     #<ending_patchToPpu_typeBConcertHeight4
         sta     patchToPpuAddr
         jsr     patchToPpu
 @height5:
@@ -4978,9 +4978,9 @@ LA96E:  lda     #$00
         bcc     ending_selected
         lda     #$04
         sta     ending
-        lda     #$A8
+        lda     #>ending_patchToPpu_typeAOver120k
         sta     patchToPpuAddr+1
-        lda     #$CC
+        lda     #<ending_patchToPpu_typeAOver120k
         sta     patchToPpuAddr
         jsr     patchToPpu
 ending_selected:
