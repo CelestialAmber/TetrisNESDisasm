@@ -1,11 +1,26 @@
+WINDOWS := $(shell which wine ; echo $$?)
+UNAME_S := $(shell uname -s)
+
 tetris_obj := main.o tetris-ram.o tetris.o
 cc65Path := tools/cc65
 
-MD5 := md5sum -c
+# Hack for OSX
+ifeq ($(UNAME_S),Darwin)
+	SHA1SUM := shasum
+else
+	SHA1SUM := sha1sum
+endif
 
-CA65 := $(cc65Path)/bin/ca65
-LD65 := $(cc65Path)/bin/ld65
-nesChrEncode := python tools/nes-util/nes_chr_encode.py
+# Programs
+ifeq ($(WINDOWS),1)
+  WINE :=
+else
+  WINE := wine
+endif
+
+CA65 := $(WINE) $(cc65Path)/bin/ca65
+LD65 := $(WINE) $(cc65Path)/bin/ld65
+nesChrEncode := python3 tools/nes-util/nes_chr_encode.py
 
 tetris.nes: tetris.o main.o tetris-ram.o
 
@@ -22,7 +37,8 @@ CAFLAGS = -g
 LDFLAGS =
 
 compare: $(tetris)
-		@$(MD5) tetris.md5
+	$(SHA1SUM) -c tetris.sha1
+
 clean:
 	rm -f  $(tetris_obj) $(tetris) *.d tetris.dbg tetris.lbl gfx/*.chr
 	$(MAKE) clean -C tools/cTools/

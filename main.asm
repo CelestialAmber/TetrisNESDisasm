@@ -74,7 +74,7 @@ spriteIndexInOamContentLookup:= $00A2
 outOfDateRenderFlags:= $00A3                    ; Bit 0-lines 1-level 2-score 6-stats 7-high score entry letter
 twoPlayerPieceDelayCounter:= $00A4              ; 0 is not delaying
 twoPlayerPieceDelayPlayer:= $00A5
-nextPiece_2player:= $00A6                       ; Somehow used for two players, but seems broken
+twoPlayerPieceDelayPiece:= $00A6                       ; The future value of nextPiece, once the delay completes
 gameModeState   := $00A7                        ; For values, see playState_checkForCompletedRows
 generalCounter  := $00A8                        ; canon is legalScreenCounter2
 generalCounter2 := $00A9
@@ -1176,7 +1176,7 @@ gameModeState_initGameState:
         jsr     generateNextPseudorandomNumber
         jsr     chooseNextTetrimino
         sta     nextPiece
-        sta     nextPiece_2player
+        sta     twoPlayerPieceDelayPiece
         lda     gameType
         beq     @skipTypeBInit
         lda     #$25
@@ -2774,25 +2774,25 @@ playState_spawnNextTetrimino:
         bmi     @ret
         lda     numberOfPlayers
         cmp     #$01
-        beq     @notDelaying
+        beq     @spawnPiece
         lda     twoPlayerPieceDelayCounter
         cmp     #$00
-        bne     @twoPlayerPieceDelay
+        bne     @twoPlayerWaiting
         inc     twoPlayerPieceDelayCounter
         lda     activePlayer
         sta     twoPlayerPieceDelayPlayer
         jsr     chooseNextTetrimino
-        sta     nextPiece_2player
+        sta     twoPlayerPieceDelayPiece
         jmp     @ret
 
-@twoPlayerPieceDelay:
+@twoPlayerWaiting:
         lda     twoPlayerPieceDelayPlayer
         cmp     activePlayer
         bne     @ret
         lda     twoPlayerPieceDelayCounter
         cmp     #$1C
         bne     @ret
-@notDelaying:
+@spawnPiece:
         lda     #$00
         sta     twoPlayerPieceDelayCounter
         sta     fallTimer
@@ -2808,7 +2808,7 @@ playState_spawnNextTetrimino:
         lda     numberOfPlayers
         cmp     #$01
         beq     @onePlayerPieceSelection
-        lda     nextPiece_2player
+        lda     twoPlayerPieceDelayPiece
         sta     nextPiece
         jmp     @resetDownHold
 
@@ -5528,6 +5528,9 @@ defaultHighScoresTable:
         .byte   $00 ;Game B 3rd Entry Level
         .byte   $00 ;unknown
         .byte   $FF
+
+;.segment        "legal_screen_nametable": absolute
+
 legal_screen_nametable:
         .incbin "gfx/nametables/legal_screen_nametable.bin"
 title_screen_nametable:
