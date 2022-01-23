@@ -18,8 +18,8 @@ else
   WINE := wine
 endif
 
-CA65 := $(WINE) $(cc65Path)/bin/ca65
-LD65 := $(WINE) $(cc65Path)/bin/ld65
+CA65 := ca65
+LD65 := ld65
 nesChrEncode := python3 tools/nes-util/nes_chr_encode.py
 
 tetris.nes: tetris.o main.o tetris-ram.o
@@ -59,11 +59,10 @@ $(tetris_obj): %.o: %.asm $$(dep)
 
 %: %.cfg
 		$(LD65) $(LDFLAGS) -Ln $(basename $@).lbl --dbgfile $(basename $@).dbg -o $@ -C $< $(tetris_obj)
-		
-				
+
+
 
 %.chr: %.png
 		$(nesChrEncode) $< $@
 
-	
-	
+

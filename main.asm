@@ -6512,7 +6512,7 @@ loadMusicTrack:
         iny
         inx
         txa
-        cmp     #$0A
+        cmp     #$0A ; copies 10-byte header to musicDataNoteTableOffset
         bne     @copyByteToMusicData
         lda     #$01
         sta     musicChanNoteDurationRemaining
@@ -6848,7 +6848,7 @@ updateMusicFrame_updateChannel:
         sta     AUDIOTMP4
         tya
         clc
-        sbc     AUDIOTMP4
+        sbc     AUDIOTMP4 ; Subtracts an extra 1 because carry is cleared
         jmp     @noteOffsetApplied
 
 @signMagnitudeIsPositive:
@@ -7016,6 +7016,7 @@ musicGetNextInstructionByte:
         lda     (musicChanTmpAddr),y
         rts
 
+; Instrument envelopes, listed as a series of nibbles corresponding to volume. $FF sustains the last volume, while $F0 releases
 musicChanVolControlTable:
         .addr   LEA76
         .addr   LEA82
@@ -7072,45 +7073,85 @@ LEB0D:  .byte   $85,$51,$F0
 LEB10:  .byte   $63,$31,$F0
 ; Rounds slightly differently, but can use for reference: https://web.archive.org/web/20180315161431if_/http://www.freewebs.com:80/the_bott/NotesTableNTSC.txt
 noteToWaveTable:
+        ; $00: A1, rest, C2, Db2
         .dbyt   $07F0,$0000,$06AE,$064E
+        ; $08: D2, Eb2, E2, F2
         .dbyt   $05F3,$059E,$054D,$0501
+        ; $10: Gb2, G2, Ab2, A2
         .dbyt   $04B9,$0475,$0435,$03F8
+        ; $18: Bb2, B2, C3, Db3
         .dbyt   $03BF,$0389,$0357,$0327
+        ; $20: D3, Eb3, E3, F3
         .dbyt   $02F9,$02CF,$02A6,$0280
+        ; $28: Gb3, G3, Ab3, A3
         .dbyt   $025C,$023A,$021A,$01FC
+        ; $30: Bb3, B4, C4, Db4
         .dbyt   $01DF,$01C4,$01AB,$0193
+        ; $38: D4, Eb4, E4, F4
         .dbyt   $017C,$0167,$0152,$013F
+        ; $40: Gb4, G4, Ab4, A4
         .dbyt   $012D,$011C,$010C,$00FD
+        ; $48: Bb4, B4, C5, Db5
         .dbyt   $00EE,$00E1,$00D4,$00C8
+        ; $50: D5, Eb5, E5, F5
         .dbyt   $00BD,$00B2,$00A8,$009F
+        ; $58: Gb5, G5, Ab5, A5
         .dbyt   $0096,$008D,$0085,$007E
+        ; $60: Bb5, B5, C6, Db6
         .dbyt   $0076,$0070,$0069,$0063
+        ; $68: D6, Eb6, E6, F6
         .dbyt   $005E,$0058,$0053,$004F
+        ; $70: Gb6, G6, Ab6, A6
         .dbyt   $004A,$0046,$0042,$003E
+        ; $78: Bb6, B6, C7, Db7
         .dbyt   $003A,$0037,$0034,$0031
+        ; $80: D7, Eb7, E7, F7
         .dbyt   $002E,$002B,$0029,$0027
+        ; $88: very high, Gb7, G7, Ab7
         .dbyt   $0001,$0024,$0022,$0020
+        ; $90: A7, Bb7, B7, Eb8
         .dbyt   $001E,$001C,$001A,$000A
+        ; $98: Ab8, Db8
         .dbyt   $0010,$0019
+
+; 1/16  note, 1/8 note, 1/4 note, 1/2 note, full note, 3/8 note, 3/4 note, 3/16 note
 noteDurationTable:
+        ; 300 bpm
         .byte   $03,$06,$0C,$18,$30,$12,$24,$09
-        .byte   $08,$04,$02,$01,$04,$08,$10,$20
-        .byte   $40,$18,$30,$0C,$0A,$05,$02,$01
+        .byte   $08,$04,$02,$01
+        ; 225 bpm
+        .byte   $04,$08,$10,$20,$40,$18,$30,$0C
+        .byte   $0A,$05,$02,$01
+        ; 180 bpm
         .byte   $05,$0A,$14,$28,$50,$1E,$3C,$0F
-        .byte   $0D,$06,$02,$01,$06,$0C,$18,$30
-        .byte   $60,$24,$48,$12,$10,$08,$03,$01
-        .byte   $04,$02,$00,$90,$07,$0E,$1C,$38
-        .byte   $70,$2A,$54,$15,$12,$09,$03,$01
-        .byte   $02,$08,$10,$20,$40,$80,$30,$60
-        .byte   $18,$15,$0A,$04,$01,$02,$C0,$09
-        .byte   $12,$24,$48,$90,$36,$6C,$1B,$18
+        .byte   $0D,$06,$02,$01
+        ; 150 bpm
+        .byte   $06,$0C,$18,$30,$60,$24,$48,$12
+        .byte   $10,$08,$03,$01,$04,$02,$00,$90
+        ; 128 bpm
+        .byte   $07,$0E,$1C,$38,$70,$2A,$54,$15
+        .byte   $12,$09,$03,$01,$02
+        ; 112 bpm
+        .byte   $08,$10,$20,$40,$80,$30,$60,$18
+        .byte   $15,$0A,$04,$01,$02,$C0
+        ; 100 bpm
+        .byte   $09,$12,$24,$48,$90,$36,$6C,$1B
+        .byte   $18
+        ; 90 bpm
         .byte   $0A,$14,$28,$50,$A0,$3C,$78,$1E
-        .byte   $1A,$0D,$05,$01,$02,$17,$0B,$16
-        .byte   $2C,$58,$B0,$42,$84,$21,$1D,$0E
-        .byte   $05,$01,$02,$17
+        .byte   $1A,$0D,$05,$01,$02,$17
+        ; 82 bpm
+        .byte   $0B,$16,$2C,$58,$B0,$42,$84,$21
+        .byte   $1D,$0E,$05,$01,$02,$17
 musicDataTableIndex:
         .byte   $00,$0A,$14,$1E,$28,$32,$3C,$46
         .byte   $50,$5A
+
+; First byte corresponds to a key offset that applies to all notes for each channel (excluding noise probably)
+; Value of %0xxxxxxx adds xxxxxxx to each index, while %1xxxxxxx subtracts (xxxxxxx+1) to each index
+; so $0A shifts each note up by 5 half steps and $83 shifts each note down 2 half steps (note table entries are 2 bytes)
+; Second byte controls tempo, indexing into noteDurationTable
+; Each table entry is written into musicDataNoteTableOffset
 musicDataTable:
         .byte   $0A,$24
         .addr   music_titleScreen_sq1Script
@@ -7184,6 +7225,8 @@ music_titleScreen_noiseScript:
         .addr   LFFFF
         .addr   music_titleScreen_noiseScript
 .include "audio/music/music_titlescreen.asm"
+
+; Only 256 bytes can be accessed at a time due to relative addressing, so the various routine addresses are like checkpoints in the music.
 music_music1_sq1Script:
         .addr   music_music1_sq1Routine1
         .addr   music_music1_sq1Routine2
