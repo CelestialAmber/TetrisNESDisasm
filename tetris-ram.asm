@@ -168,7 +168,7 @@ musicStagingSq2Hi:	.res 1	; $0685
 musicStagingTriLo:	.res 1	; $0688
 musicStagingTriHi:	.res 1	; $0689
 resetSq12ForMusic:	.res 1	; $068A
-.res 1
+musicPauseSoundEffectCounter: .res 1 ; $068B
 musicStagingNoiseLo:	.res 1	; $068C
 musicStagingNoiseHi:	.res 1	; $068D
 .res 2

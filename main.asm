@@ -150,6 +150,7 @@ musicStagingSq2Hi:= $0685
 musicStagingTriLo:= $0688
 musicStagingTriHi:= $0689
 resetSq12ForMusic:= $068A                       ; 0-off. 1-sq1. 2-sq1 and sq2
+musicPauseSoundEffectCounter:= $068B
 musicStagingNoiseLo:= $068C
 musicStagingNoiseHi:= $068D
 musicDataNoteTableOffset:= $0690                ; AKA start of musicData, of size $0A
@@ -5854,9 +5855,9 @@ updateAudio_pause:
         and     #$03
         cmp     #$03
         bne     @incAndRet
-        inc     $068B
+        inc     musicPauseSoundEffectCounter
         ldy     #<music_pause_sq1_odd
-        lda     $068B
+        lda     musicPauseSoundEffectCounter
         and     #$01
         bne     @tableChosen
         ldy     #<music_pause_sq1_even
