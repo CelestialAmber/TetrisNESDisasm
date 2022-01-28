@@ -161,7 +161,7 @@ playfieldForSecondPlayer:	.res $C8	; $0500
 musicStagingSq1Lo:	.res 1	; $0680
 musicStagingSq1Hi:	.res 1	; $0681
 audioInitialized:	.res 1	; $0682
-.res 1
+musicPauseSoundEffectLengthCounter: .res 1 ; $0683
 musicStagingSq2Lo:	.res 1	; $0684
 musicStagingSq2Hi:	.res 1	; $0685
 .res 2

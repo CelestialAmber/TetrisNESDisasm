@@ -144,6 +144,7 @@ playfieldForSecondPlayer:= $0500
 musicStagingSq1Lo:= $0680
 musicStagingSq1Hi:= $0681
 audioInitialized:= $0682
+musicPauseSoundEffectLengthCounter:= $0683
 musicStagingSq2Lo:= $0684
 musicStagingSq2Hi:= $0685
 musicStagingTriLo:= $0688
@@ -5738,10 +5739,10 @@ soundEffectSlot0_gameOverCurtainInitData:
 soundEffectSlot0_endingRocketInitData:
         .byte   $08,$7F,$0E,$C0
 ; Referenced at LE20F
-unknown_sq1_data1:
+music_pause_sq1_even:
         .byte   $9D,$7F,$7A,$28
 ; Referenced at LE20F
-unknown_sq1_data2:
+music_pause_sq1_odd:
         .byte   $9D,$7F,$40,$28
 soundEffectSlot1_rotateTetriminoInitData:
         .byte   $9E,$7F,$C0,$28
@@ -5841,27 +5842,29 @@ LE1D8:  lda     #$0F
 initAudioAndMarkInited:
         inc     audioInitialized
         jsr     muteAudio
-        sta     $0683 ; a = 0
+        sta     musicPauseSoundEffectLengthCounter ; a = 0
         rts
 
-handlePausedAudio:
+updateAudio_pause:
         lda     audioInitialized
         beq     initAudioAndMarkInited
-        lda     $0683
+        lda     musicPauseSoundEffectLengthCounter
         cmp     #$12
-        beq     LE215
+        beq     @ret
         and     #$03
         cmp     #$03
-        bne     LE212
+        bne     @incAndRet
         inc     $068B
-        ldy     #<unknown_sq1_data2
+        ldy     #<music_pause_sq1_odd
         lda     $068B
         and     #$01
-        bne     LE20F
-        ldy     #<unknown_sq1_data1
-LE20F:  jsr     copyToSq1Channel
-LE212:  inc     $0683
-LE215:  rts
+        bne     @tableChosen
+        ldy     #<music_pause_sq1_even
+@tableChosen:
+        jsr     copyToSq1Channel
+@incAndRet:
+        inc     musicPauseSoundEffectLengthCounter
+@ret:   rts
 
 ; Disables APU frame interrupt
 updateAudio:
@@ -5869,7 +5872,7 @@ updateAudio:
         sta     JOY2_APUFC
         lda     musicStagingNoiseHi
         cmp     #$05
-        beq     handlePausedAudio
+        beq     updateAudio_pause
         lda     #$00
         sta     audioInitialized
         sta     $068B
