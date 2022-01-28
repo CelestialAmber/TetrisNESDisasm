@@ -6192,10 +6192,10 @@ LE442:  jsr     copyToSq1Channel
         lda     soundEffectSlot1TertiaryCounter
         adc     soundEffectSlot1SecondaryCounter
         tay
-        lda     unknown1_table,y
+        lda     soundEffectSlot1_lineClearing_lo,y
         sta     SQ1_LO
         ldy     soundEffectSlot1SecondaryCounter
-        lda     sq1vol_unknown2_table,y
+        lda     soundEffectSlot1_lineClearing_vol,y
         sta     SQ1_VOL
         bne     LE46F
         lda     soundEffectSlot1Playing
@@ -6242,10 +6242,10 @@ LE493:  lda     soundEffectSlot1SecondaryCounter
 LE4AC:  sta     SQ1_HI
 LE4AF:  rts
 
-sq1vol_unknown2_table:
+soundEffectSlot1_lineClearing_vol:
         .byte   $9E,$9B,$99,$96,$94,$93,$92,$91
         .byte   $00
-unknown1_table:
+soundEffectSlot1_lineClearing_lo:
         .byte   $46,$37,$46,$37,$46,$37,$46,$37
         .byte   $70,$80,$90,$A0,$B0,$C0,$D0,$E0
         .byte   $C0,$89,$B8,$68,$A0,$50,$90,$40
