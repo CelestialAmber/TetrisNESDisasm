@@ -1551,27 +1551,28 @@ stageSpriteForCurrentPiece:
         asl     a
         asl     a
         adc     #$60
-        sta     generalCounter3
+        sta     generalCounter3 ; x position of center block
         lda     numberOfPlayers
         cmp     #$01
-        beq     L8A2C
+        beq     @calculateYPixel
         lda     generalCounter3
         sec
         sbc     #$40
-        sta     generalCounter3
+        sta     generalCounter3 ; if 2 player mode, player 1's field is more to the left
         lda     activePlayer
         cmp     #$01
-        beq     L8A2C
+        beq     @calculateYPixel
         lda     generalCounter3
         adc     #$6F
-        sta     generalCounter3
-L8A2C:  clc
+        sta     generalCounter3 ; and player 2's field is more to the right
+@calculateYPixel:
+        clc
         lda     tetriminoY
         rol     a
         rol     a
         rol     a
         adc     #$2F
-        sta     generalCounter4
+        sta     generalCounter4 ; y position of center block
         lda     currentPiece
         sta     generalCounter5
         clc
@@ -1581,42 +1582,44 @@ L8A2C:  clc
         sta     generalCounter
         rol     a
         adc     generalCounter
-        tax
+        tax ; x contains index into orientation table
         ldy     oamStagingLength
         lda     #$04
-        sta     generalCounter2
-L8A4B:  lda     orientationTable,x
+        sta     generalCounter2 ; iterate through all four minos
+@stageMino:
+        lda     orientationTable,x
         asl     a
         asl     a
         asl     a
         clc
         adc     generalCounter4
-        sta     oamStaging,y
+        sta     oamStaging,y ; stage y coordinate of mino
         sta     originalY
         inc     oamStagingLength
         iny
         inx
         lda     orientationTable,x
-        sta     oamStaging,y
+        sta     oamStaging,y ; stage block type of mino
         inc     oamStagingLength
         iny
         inx
         lda     #$02
-        sta     oamStaging,y
+        sta     oamStaging,y ; stage palette/front priority
         lda     originalY
-        cmp     #$2F
-        bcs     L8A84
+        cmp     #$2F ; compares with smallest allowed y position on the screen, not the field
+        bcs     @validYCoordinate
         inc     oamStagingLength
         dey
         lda     #$FF
-        sta     oamStaging,y
+        sta     oamStaging,y ; change priority to back
         iny
         iny
         lda     #$00
-        sta     oamStaging,y
-        jmp     L8A93
+        sta     oamStaging,y ; make x coordinate 0 for some reason
+        jmp     @finishLoop
 
-L8A84:  inc     oamStagingLength
+@validYCoordinate:
+        inc     oamStagingLength
         iny
         lda     orientationTable,x
         asl     a
@@ -1624,12 +1627,13 @@ L8A84:  inc     oamStagingLength
         asl     a
         clc
         adc     generalCounter3
-        sta     oamStaging,y
-L8A93:  inc     oamStagingLength
+        sta     oamStaging,y ; stage actual x coordinate
+@finishLoop:
+        inc     oamStagingLength
         iny
         inx
         dec     generalCounter2
-        bne     L8A4B
+        bne     @stageMino
         rts
 
 orientationTable:
