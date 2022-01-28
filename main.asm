@@ -6015,7 +6015,7 @@ updateSoundEffectNoiseAudio:
 ; Loads from noiselo_table(x=$54)/noisevol_table(x=$74)
 getSoundEffectNoiseNibble:
         stx     AUDIOTMP1
-        ldy     #>soundEffectSlot0_gameOverCurtainInitData
+        ldy     #>noiselo_table
         sty     AUDIOTMP2
         ldx     soundEffectSlot0SecondaryCounter
         txa
