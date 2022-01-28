@@ -5841,10 +5841,11 @@ LE1D8:  lda     #$0F
 initAudioAndMarkInited:
         inc     audioInitialized
         jsr     muteAudio
-        sta     $0683
+        sta     $0683 ; a = 0
         rts
 
-LE1EF:  lda     audioInitialized
+handlePausedAudio:
+        lda     audioInitialized
         beq     initAudioAndMarkInited
         lda     $0683
         cmp     #$12
@@ -5868,7 +5869,7 @@ updateAudio:
         sta     JOY2_APUFC
         lda     musicStagingNoiseHi
         cmp     #$05
-        beq     LE1EF
+        beq     handlePausedAudio
         lda     #$00
         sta     audioInitialized
         sta     $068B
