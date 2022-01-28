@@ -5854,7 +5854,7 @@ handlePausedAudio:
         cmp     #$03
         bne     LE212
         inc     $068B
-        ldy     #$10
+        ldy     #<unknown_sq1_data2
         lda     $068B
         and     #$01
         bne     LE20F
