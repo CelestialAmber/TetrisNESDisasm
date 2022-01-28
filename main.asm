@@ -5510,28 +5510,28 @@ defaultHighScoresTable:
         .byte  "HOWARD" ;$08,$0F,$17,$01,$12,$04
         .byte  "OTASAN" ;$0F,$14,$01,$13,$01,$0E
         .byte  "LANCE " ;$0C,$01,$0E,$03,$05,$2B
-        .byte  $00,$00,$00,$00,$00,$00 ;unknown
+        .byte  $00,$00,$00,$00,$00,$00 ;unused fourth name
         .byte  "ALEX  " ;$01,$0C,$05,$18,$2B,$2B
         .byte  "TONY  " ;$14,$0F,$0E,$19,$2B,$2B
         .byte  "NINTEN" ;$0E,$09,$0E,$14,$05,$0E
-        .byte   $00,$00,$00,$00,$00,$00 ;unknown
+        .byte   $00,$00,$00,$00,$00,$00 ;unused fourth name
         ;High Scores are stored in BCD
         .byte   $01,$00,$00 ;Game A 1st Entry Score, 10000
         .byte   $00,$75,$00 ;Game A 2nd Entry Score, 7500
         .byte   $00,$50,$00 ;Game A 3rd Entry Score, 5000
-        .byte   $00,$00,$00 ;unknown
+        .byte   $00,$00,$00 ;unused fourth score
         .byte   $00,$20,$00 ;Game B 1st Entry Score, 2000
         .byte   $00,$10,$00 ;Game B 2nd Entry Score, 1000
         .byte   $00,$05,$00 ;Game B 3rd Entry Score, 500
-        .byte   $00,$00,$00 ;unknown
+        .byte   $00,$00,$00 ;unused fourth score
         .byte   $09 ;Game A 1st Entry Level
         .byte   $05 ;Game A 2nd Entry Level
         .byte   $00 ;Game A 3nd Entry Level
-        .byte   $00 ;unknown
+        .byte   $00 ;unused fourth level
         .byte   $09 ;Game B 1st Entry Level
         .byte   $05 ;Game B 2nd Entry Level
         .byte   $00 ;Game B 3rd Entry Level
-        .byte   $00 ;unknown
+        .byte   $00 ;unused fourth level
         .byte   $FF
 
 ;.segment        "legal_screen_nametable": absolute
@@ -5770,9 +5770,9 @@ soundEffectSlot1Playing_chirpChirpStage2:
         .byte   $82,$7F,$30,$F8
 soundEffectSlot1_shiftTetriminoInitData:
         .byte   $98,$7F,$80,$38
-soundEffectSlot3_unknown1InitData:
+soundEffectSlot3_fallingAlienInitData:
         .byte   $30,$7F,$70,$08
-soundEffectSlot3_unknown2InitData:
+soundEffectSlot3_donkInitData:
         .byte   $03,$7F,$3D,$18
 soundEffectSlot1_chirpChirpSq1Vol_table:
         .byte   $14,$93,$94,$D3
@@ -6254,7 +6254,7 @@ soundEffectSlot1_levelUpPlaying:
         bne     LE4AF
         ldy     soundEffectSlot1SecondaryCounter
         inc     soundEffectSlot1SecondaryCounter
-        lda     unknown18_table,y
+        lda     soundEffectSlot1_levelUp_lo,y
         beq     LE4E9
         sta     SQ1_LO
         lda     #$28
@@ -6267,7 +6267,7 @@ soundEffectSlot1_levelUpInit:
         ldy     #<soundEffectSlot1_levelUpInitData
         jmp     initSoundEffectShared
 
-unknown18_table:
+soundEffectSlot1_levelUp_lo:
         .byte   $69,$A8,$69,$A8,$8D,$53,$8D,$53
         .byte   $8D,$00,$A9,$10,$8D,$04,$40,$A9
         .byte   $00,$8D,$C9,$06,$8D,$FA,$06,$60
@@ -6295,7 +6295,7 @@ LE51B:  sta     DMC_LEN
 ; Unused
 soundEffectSlot3_donk:
         lda     #$02
-        ldy     #<soundEffectSlot3_unknown2InitData
+        ldy     #<soundEffectSlot3_donkInitData
         jmp     initSoundEffectShared
 
 soundEffectSlot3Playing_advance:
@@ -6320,16 +6320,16 @@ updateSoundEffectSlot3_apu:
         beq     soundEffectSlot3Playing_stop
         sta     TRI_LO
         sta     soundEffectSlot3TertiaryCounter
-        lda     soundEffectSlot3_unknown1InitData+3
+        lda     soundEffectSlot3_fallingAlienInitData+3
         sta     TRI_HI
         rts
 
 ; Unused
 soundEffectSlot3_fallingAlien:
         lda     #$06
-        ldy     #<soundEffectSlot3_unknown1InitData
+        ldy     #<soundEffectSlot3_fallingAlienInitData
         jsr     initSoundEffectShared
-        lda     soundEffectSlot3_unknown1InitData+2
+        lda     soundEffectSlot3_fallingAlienInitData+2
         sta     soundEffectSlot3TertiaryCounter
         rts
 
