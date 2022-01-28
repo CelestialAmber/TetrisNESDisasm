@@ -1611,7 +1611,7 @@ stageSpriteForCurrentPiece:
         inc     oamStagingLength
         dey
         lda     #$FF
-        sta     oamStaging,y ; change priority to back
+        sta     oamStaging,y ; make tile invisible
         iny
         iny
         lda     #$00
