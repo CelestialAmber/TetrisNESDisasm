@@ -59,11 +59,10 @@ $(tetris_obj): %.o: %.asm $$(dep)
 
 %: %.cfg
 		$(LD65) $(LDFLAGS) -Ln $(basename $@).lbl --dbgfile $(basename $@).dbg -o $@ -C $< $(tetris_obj)
-		
-				
+
+
 
 %.chr: %.png
 		$(nesChrEncode) $< $@
 
-	
-	
+

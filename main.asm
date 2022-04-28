@@ -144,11 +144,13 @@ playfieldForSecondPlayer:= $0500
 musicStagingSq1Lo:= $0680
 musicStagingSq1Hi:= $0681
 audioInitialized:= $0682
+musicPauseSoundEffectLengthCounter:= $0683
 musicStagingSq2Lo:= $0684
 musicStagingSq2Hi:= $0685
 musicStagingTriLo:= $0688
 musicStagingTriHi:= $0689
 resetSq12ForMusic:= $068A                       ; 0-off. 1-sq1. 2-sq1 and sq2
+musicPauseSoundEffectCounter:= $068B
 musicStagingNoiseLo:= $068C
 musicStagingNoiseHi:= $068D
 musicDataNoteTableOffset:= $0690                ; AKA start of musicData, of size $0A
@@ -401,9 +403,9 @@ initRamContinued:
         cmp     #$05
         bne     @continue
         lda     demoButtonsAddr+1
-        cmp     #$DF
+        cmp     #>demoTetriminoTypeTable
         bne     @continue
-        lda     #$DD
+        lda     #>demoButtonsTable
         sta     demoButtonsAddr+1
         lda     #$00
         sta     frameCounter+1
@@ -1160,7 +1162,7 @@ gameModeState_initGameState:
         sta     demoIndex
         sta     demoButtonsAddr
         sta     spawnID
-        lda     #$DD
+        lda     #>demoButtonsTable
         sta     demoButtonsAddr+1
         lda     #$03
         sta     renderMode
@@ -1551,27 +1553,28 @@ stageSpriteForCurrentPiece:
         asl     a
         asl     a
         adc     #$60
-        sta     generalCounter3
+        sta     generalCounter3 ; x position of center block
         lda     numberOfPlayers
         cmp     #$01
-        beq     L8A2C
+        beq     @calculateYPixel
         lda     generalCounter3
         sec
         sbc     #$40
-        sta     generalCounter3
+        sta     generalCounter3 ; if 2 player mode, player 1's field is more to the left
         lda     activePlayer
         cmp     #$01
-        beq     L8A2C
+        beq     @calculateYPixel
         lda     generalCounter3
         adc     #$6F
-        sta     generalCounter3
-L8A2C:  clc
+        sta     generalCounter3 ; and player 2's field is more to the right
+@calculateYPixel:
+        clc
         lda     tetriminoY
         rol     a
         rol     a
         rol     a
         adc     #$2F
-        sta     generalCounter4
+        sta     generalCounter4 ; y position of center block
         lda     currentPiece
         sta     generalCounter5
         clc
@@ -1581,42 +1584,44 @@ L8A2C:  clc
         sta     generalCounter
         rol     a
         adc     generalCounter
-        tax
+        tax ; x contains index into orientation table
         ldy     oamStagingLength
         lda     #$04
-        sta     generalCounter2
-L8A4B:  lda     orientationTable,x
+        sta     generalCounter2 ; iterate through all four minos
+@stageMino:
+        lda     orientationTable,x
         asl     a
         asl     a
         asl     a
         clc
         adc     generalCounter4
-        sta     oamStaging,y
+        sta     oamStaging,y ; stage y coordinate of mino
         sta     originalY
         inc     oamStagingLength
         iny
         inx
         lda     orientationTable,x
-        sta     oamStaging,y
+        sta     oamStaging,y ; stage block type of mino
         inc     oamStagingLength
         iny
         inx
         lda     #$02
-        sta     oamStaging,y
+        sta     oamStaging,y ; stage palette/front priority
         lda     originalY
-        cmp     #$2F
-        bcs     L8A84
+        cmp     #$2F ; compares with smallest allowed y position on the screen, not the field
+        bcs     @validYCoordinate
         inc     oamStagingLength
         dey
         lda     #$FF
-        sta     oamStaging,y
+        sta     oamStaging,y ; make tile invisible
         iny
         iny
         lda     #$00
-        sta     oamStaging,y
-        jmp     L8A93
+        sta     oamStaging,y ; make x coordinate 0 for some reason
+        jmp     @finishLoop
 
-L8A84:  inc     oamStagingLength
+@validYCoordinate:
+        inc     oamStagingLength
         iny
         lda     orientationTable,x
         asl     a
@@ -1624,12 +1629,13 @@ L8A84:  inc     oamStagingLength
         asl     a
         clc
         adc     generalCounter3
-        sta     oamStaging,y
-L8A93:  inc     oamStagingLength
+        sta     oamStaging,y ; stage actual x coordinate
+@finishLoop:
+        inc     oamStagingLength
         iny
         inx
         dec     generalCounter2
-        bne     L8A4B
+        bne     @stageMino
         rts
 
 orientationTable:
@@ -3501,7 +3507,7 @@ pollControllerButtons:
         sta     demo_repeats
         jsr     demoButtonsTable_indexIncr
         lda     demoButtonsAddr+1
-        cmp     #$DF
+        cmp     #>demoTetriminoTypeTable
         beq     @ret
         jmp     @holdButtons
 
@@ -3514,7 +3520,7 @@ pollControllerButtons:
 @ret:   rts
 
 @startButtonPressed:
-        lda     #$DD
+        lda     #>demoButtonsTable
         sta     demoButtonsAddr+1
         lda     #$00
         sta     frameCounter+1
@@ -3541,7 +3547,7 @@ pollControllerButtons:
         sta     (demoButtonsAddr,x)
         jsr     demoButtonsTable_indexIncr
         lda     demoButtonsAddr+1
-        cmp     #$DF
+        cmp     #>demoTetriminoTypeTable
         beq     @ret2
         lda     heldButtons_player1
         sta     demo_heldButtons
@@ -4459,33 +4465,33 @@ ending_typeBConcertPatchToPpuForHeight:
         sta     patchToPpuAddr
         jsr     patchToPpu
 @height0:
-        lda     #$A8
+        lda     #>ending_patchToPpu_typeBConcertHeight0
         sta     patchToPpuAddr+1
-        lda     #$34
+        lda     #<ending_patchToPpu_typeBConcertHeight0
         sta     patchToPpuAddr
         jsr     patchToPpu
 @height1:
-        lda     #$A8
+        lda     #>ending_patchToPpu_typeBConcertHeight1
         sta     patchToPpuAddr+1
-        lda     #$4A
+        lda     #<ending_patchToPpu_typeBConcertHeight1
         sta     patchToPpuAddr
         jsr     patchToPpu
 @height2:
-        lda     #$A8
+        lda     #>ending_patchToPpu_typeBConcertHeight2
         sta     patchToPpuAddr+1
-        lda     #$62
+        lda     #<ending_patchToPpu_typeBConcertHeight2
         sta     patchToPpuAddr
         jsr     patchToPpu
 @height3:
-        lda     #$A8
+        lda     #>ending_patchToPpu_typeBConcertHeight3
         sta     patchToPpuAddr+1
-        lda     #$7A
+        lda     #<ending_patchToPpu_typeBConcertHeight3
         sta     patchToPpuAddr
         jsr     patchToPpu
 @height4:
-        lda     #$A8
+        lda     #>ending_patchToPpu_typeBConcertHeight4
         sta     patchToPpuAddr+1
-        lda     #$96
+        lda     #<ending_patchToPpu_typeBConcertHeight4
         sta     patchToPpuAddr
         jsr     patchToPpu
 @height5:
@@ -4974,9 +4980,9 @@ LA96E:  lda     #$00
         bcc     ending_selected
         lda     #$04
         sta     ending
-        lda     #$A8
+        lda     #>ending_patchToPpu_typeAOver120k
         sta     patchToPpuAddr+1
-        lda     #$CC
+        lda     #<ending_patchToPpu_typeAOver120k
         sta     patchToPpuAddr
         jsr     patchToPpu
 ending_selected:
@@ -5505,28 +5511,28 @@ defaultHighScoresTable:
         .byte  "HOWARD" ;$08,$0F,$17,$01,$12,$04
         .byte  "OTASAN" ;$0F,$14,$01,$13,$01,$0E
         .byte  "LANCE " ;$0C,$01,$0E,$03,$05,$2B
-        .byte  $00,$00,$00,$00,$00,$00 ;unknown
+        .byte  $00,$00,$00,$00,$00,$00 ;unused fourth name
         .byte  "ALEX  " ;$01,$0C,$05,$18,$2B,$2B
         .byte  "TONY  " ;$14,$0F,$0E,$19,$2B,$2B
         .byte  "NINTEN" ;$0E,$09,$0E,$14,$05,$0E
-        .byte   $00,$00,$00,$00,$00,$00 ;unknown
+        .byte   $00,$00,$00,$00,$00,$00 ;unused fourth name
         ;High Scores are stored in BCD
         .byte   $01,$00,$00 ;Game A 1st Entry Score, 10000
         .byte   $00,$75,$00 ;Game A 2nd Entry Score, 7500
         .byte   $00,$50,$00 ;Game A 3rd Entry Score, 5000
-        .byte   $00,$00,$00 ;unknown
+        .byte   $00,$00,$00 ;unused fourth score
         .byte   $00,$20,$00 ;Game B 1st Entry Score, 2000
         .byte   $00,$10,$00 ;Game B 2nd Entry Score, 1000
         .byte   $00,$05,$00 ;Game B 3rd Entry Score, 500
-        .byte   $00,$00,$00 ;unknown
+        .byte   $00,$00,$00 ;unused fourth score
         .byte   $09 ;Game A 1st Entry Level
         .byte   $05 ;Game A 2nd Entry Level
         .byte   $00 ;Game A 3nd Entry Level
-        .byte   $00 ;unknown
+        .byte   $00 ;unused fourth level
         .byte   $09 ;Game B 1st Entry Level
         .byte   $05 ;Game B 2nd Entry Level
         .byte   $00 ;Game B 3rd Entry Level
-        .byte   $00 ;unknown
+        .byte   $00 ;unused fourth level
         .byte   $FF
 
 ;.segment        "legal_screen_nametable": absolute
@@ -5650,7 +5656,7 @@ copyToApuChannel:
         lda     #$40
         sta     AUDIOTMP2
         sty     AUDIOTMP3
-        lda     #$E1
+        lda     #>soundEffectSlot0_gameOverCurtainInitData
         sta     AUDIOTMP4
         ldy     #$00
 @copyByte:
@@ -5666,7 +5672,7 @@ copyToApuChannel:
 computeSoundEffMethod:
         sta     currentAudioSlot
         pha
-        ldy     #$E0
+        ldy     #>soundEffectSlot0Init_table
         sty     AUDIOTMP2
         ldy     #$00
 @whileYNot2TimesA:
@@ -5679,7 +5685,7 @@ computeSoundEffMethod:
         bne     @whileYNot2TimesA
         lda     #$91
         sta     AUDIOTMP3
-        lda     #$E0
+        lda     #>soundEffectSlot0Init_table
         sta     AUDIOTMP4
 @ret:   pla
         sta     currentAudioSlot
@@ -5734,10 +5740,10 @@ soundEffectSlot0_gameOverCurtainInitData:
 soundEffectSlot0_endingRocketInitData:
         .byte   $08,$7F,$0E,$C0
 ; Referenced at LE20F
-unknown_sq1_data1:
+music_pause_sq1_even:
         .byte   $9D,$7F,$7A,$28
 ; Referenced at LE20F
-unknown_sq1_data2:
+music_pause_sq1_odd:
         .byte   $9D,$7F,$40,$28
 soundEffectSlot1_rotateTetriminoInitData:
         .byte   $9E,$7F,$C0,$28
@@ -5765,9 +5771,9 @@ soundEffectSlot1Playing_chirpChirpStage2:
         .byte   $82,$7F,$30,$F8
 soundEffectSlot1_shiftTetriminoInitData:
         .byte   $98,$7F,$80,$38
-soundEffectSlot3_unknown1InitData:
+soundEffectSlot3_fallingAlienInitData:
         .byte   $30,$7F,$70,$08
-soundEffectSlot3_unknown2InitData:
+soundEffectSlot3_donkInitData:
         .byte   $03,$7F,$3D,$18
 soundEffectSlot1_chirpChirpSq1Vol_table:
         .byte   $14,$93,$94,$D3
@@ -5785,30 +5791,30 @@ noisevol_table:
         .byte   $22,$22,$22,$22,$21,$11,$11,$11
 updateSoundEffectSlot2:
         ldx     #$02
-        lda     #$45
-        ldy     #$45
+        lda     #<soundEffectSlot2Init_table
+        ldy     #<soundEffectSlot2Init_table
         bne     updateSoundEffectSlotShared
 updateSoundEffectSlot3:
         ldx     #$03
-        lda     #$3D
-        ldy     #$41
+        lda     #<soundEffectSlot3Init_table
+        ldy     #<soundEffectSlot3Playing_table
         bne     updateSoundEffectSlotShared
 updateSoundEffectSlot4_unused:
         ldx     #$04
-        lda     #$45
-        ldy     #$45
+        lda     #<soundEffectSlot2Init_table
+        ldy     #<soundEffectSlot2Init_table
         bne     updateSoundEffectSlotShared
 updateSoundEffectSlot1:
         lda     soundEffectSlot4Playing
         bne     updateSoundEffectSlotShared_rts
         ldx     #$01
-        lda     #$15
-        ldy     #$29
+        lda     #<soundEffectSlot1Init_table
+        ldy     #<soundEffectSlot1Playing_table
         bne     updateSoundEffectSlotShared
 updateSoundEffectSlot0:
         ldx     #$00
-        lda     #$09
-        ldy     #$0F
+        lda     #<soundEffectSlot0Init_table
+        ldy     #<soundEffectSlot0Playing_table
 ; x: sound effect slot; a: low byte addr, for $E0 high byte; y: low byte addr, for $E0 high byte, if slot unused
 updateSoundEffectSlotShared:
         sta     AUDIOTMP1
@@ -5837,26 +5843,29 @@ LE1D8:  lda     #$0F
 initAudioAndMarkInited:
         inc     audioInitialized
         jsr     muteAudio
-        sta     $0683
+        sta     musicPauseSoundEffectLengthCounter ; a = 0
         rts
 
-LE1EF:  lda     audioInitialized
+updateAudio_pause:
+        lda     audioInitialized
         beq     initAudioAndMarkInited
-        lda     $0683
+        lda     musicPauseSoundEffectLengthCounter
         cmp     #$12
-        beq     LE215
+        beq     @ret
         and     #$03
         cmp     #$03
-        bne     LE212
-        inc     $068B
-        ldy     #$10
-        lda     $068B
+        bne     @incAndRet
+        inc     musicPauseSoundEffectCounter
+        ldy     #<music_pause_sq1_odd
+        lda     musicPauseSoundEffectCounter
         and     #$01
-        bne     LE20F
-        ldy     #$0C
-LE20F:  jsr     copyToSq1Channel
-LE212:  inc     $0683
-LE215:  rts
+        bne     @tableChosen
+        ldy     #<music_pause_sq1_even
+@tableChosen:
+        jsr     copyToSq1Channel
+@incAndRet:
+        inc     musicPauseSoundEffectLengthCounter
+@ret:   rts
 
 ; Disables APU frame interrupt
 updateAudio:
@@ -5864,7 +5873,7 @@ updateAudio:
         sta     JOY2_APUFC
         lda     musicStagingNoiseHi
         cmp     #$05
-        beq     LE1EF
+        beq     updateAudio_pause
         lda     #$00
         sta     audioInitialized
         sta     $068B
@@ -5954,7 +5963,7 @@ initSoundEffectShared:
 
 soundEffectSlot0_endingRocketInit:
         lda     #$20
-        ldy     #$08
+        ldy     #<soundEffectSlot0_endingRocketInitData
         jmp     initSoundEffectShared
 
 setNoiseLo:
@@ -5986,7 +5995,7 @@ unreferenced_code2:
         sta     currentAudioSlot
 soundEffectSlot0_gameOverCurtainInit:
         lda     #$40
-        ldy     #$04
+        ldy     #<soundEffectSlot0_gameOverCurtainInitData
         jmp     initSoundEffectShared
 
 updateSoundEffectSlot0_apu:
@@ -5995,9 +6004,9 @@ updateSoundEffectSlot0_apu:
         jmp     stopSoundEffectSlot0
 
 updateSoundEffectNoiseAudio:
-        ldx     #$54
+        ldx     #<noiselo_table
         jsr     loadNoiseLo
-        ldx     #$74
+        ldx     #<noisevol_table
         jsr     getSoundEffectNoiseNibble
         ora     #$10
         sta     NOISE_VOL
@@ -6007,7 +6016,7 @@ updateSoundEffectNoiseAudio:
 ; Loads from noiselo_table(x=$54)/noisevol_table(x=$74)
 getSoundEffectNoiseNibble:
         stx     AUDIOTMP1
-        ldy     #$E1
+        ldy     #>noiselo_table
         sty     AUDIOTMP2
         ldx     soundEffectSlot0SecondaryCounter
         txa
@@ -6059,26 +6068,26 @@ soundEffectSlot1_chirpChirpPlaying:
         cmp     #$08
         bne     soundEffectSlot1Playing_ret
         inc     soundEffectSlot1TertiaryCounter
-        ldy     #$40
+        ldy     #<soundEffectSlot1Playing_chirpChirpStage2
         jmp     copyToSq1Channel
 
 ; Unused.
 soundEffectSlot1_chirpChirpInit:
-        ldy     #$3C
+        ldy     #<soundEffectSlot1_chirpChirpInitData
         jmp     initSoundEffectShared
 
 soundEffectSlot1_lockTetriminoInit:
         jsr     LE33B
         beq     soundEffectSlot1Playing_ret
         lda     #$0F
-        ldy     #$20
+        ldy     #<soundEffectSlot1_lockTetriminoInitData
         jmp     initSoundEffectShared
 
 soundEffectSlot1_shiftTetriminoInit:
         jsr     LE33B
         beq     soundEffectSlot1Playing_ret
         lda     #$02
-        ldy     #$44
+        ldy     #<soundEffectSlot1_shiftTetriminoInitData
         jmp     initSoundEffectShared
 
 soundEffectSlot1Playing_advance:
@@ -6106,12 +6115,12 @@ soundEffectSlot1_menuOptionSelectPlaying:
         bne     @stage2
         jmp     soundEffectSlot1Playing_stop
 
-@stage2:ldy     #$28
+@stage2:ldy     #<soundEffectSlot1Playing_menuOptionSelectStage2
         jmp     copyToSq1Channel
 
 soundEffectSlot1_menuOptionSelectInit:
         lda     #$03
-        ldy     #$24
+        ldy     #<soundEffectSlot1_menuOptionSelectInitData
         bne     LE417
 soundEffectSlot1_rotateTetrimino_ret:
         rts
@@ -6120,7 +6129,7 @@ soundEffectSlot1_rotateTetriminoInit:
         jsr     LE33B
         beq     soundEffectSlot1_rotateTetrimino_ret
         lda     #$04
-        ldy     #$14
+        ldy     #<soundEffectSlot1_rotateTetriminoInitData
         jsr     LE417
 soundEffectSlot1_rotateTetriminoPlaying:
         jsr     advanceAudioSlotFrame
@@ -6136,40 +6145,40 @@ soundEffectSlot1_rotateTetriminoPlaying:
         bne     soundEffectSlot1_rotateTetrimino_ret
         jmp     soundEffectSlot1Playing_stop
 
-@stage2:ldy     #$14
+@stage2:ldy     #<soundEffectSlot1_rotateTetriminoInitData
         jmp     copyToSq1Channel
 
 ; On first glance it appears this is used twice, but the first beq does nothing because the inc result will never be 0
-@stage3:ldy     #$18
+@stage3:ldy     #<soundEffectSlot1Playing_rotateTetriminoStage3
         jmp     copyToSq1Channel
 
 soundEffectSlot1_tetrisAchievedInit:
         lda     #$05
-        ldy     #$30
+        ldy     #<soundEffectSlot1_tetrisAchievedInitData
         jsr     LE417
         lda     #$10
         bne     LE437
 soundEffectSlot1_tetrisAchievedPlaying:
         jsr     advanceAudioSlotFrame
         bne     LE43A
-        ldy     #$30
+        ldy     #<soundEffectSlot1_tetrisAchievedInitData
         bne     LE442
 LE417:  jmp     initSoundEffectShared
 
 soundEffectSlot1_lineCompletedInit:
         lda     #$05
-        ldy     #$34
+        ldy     #<soundEffectSlot1_lineCompletedInitData
         jsr     LE417
         lda     #$08
         bne     LE437
 soundEffectSlot1_lineCompletedPlaying:
         jsr     advanceAudioSlotFrame
         bne     LE43A
-        ldy     #$34
+        ldy     #<soundEffectSlot1_lineCompletedInitData
         bne     LE442
 soundEffectSlot1_lineClearingInit:
         lda     #$04
-        ldy     #$38
+        ldy     #<soundEffectSlot1_lineClearingInitData
         jsr     LE417
         lda     #$00
 LE437:  sta     soundEffectSlot1TertiaryCounter
@@ -6178,16 +6187,16 @@ LE43A:  rts
 soundEffectSlot1_lineClearingPlaying:
         jsr     advanceAudioSlotFrame
         bne     LE43A
-        ldy     #$38
+        ldy     #<soundEffectSlot1_lineClearingInitData
 LE442:  jsr     copyToSq1Channel
         clc
         lda     soundEffectSlot1TertiaryCounter
         adc     soundEffectSlot1SecondaryCounter
         tay
-        lda     unknown1_table,y
+        lda     soundEffectSlot1_lineClearing_lo,y
         sta     SQ1_LO
         ldy     soundEffectSlot1SecondaryCounter
-        lda     sq1vol_unknown2_table,y
+        lda     soundEffectSlot1_lineClearing_vol,y
         sta     SQ1_VOL
         bne     LE46F
         lda     soundEffectSlot1Playing
@@ -6204,7 +6213,7 @@ LE472:  rts
 
 soundEffectSlot1_menuScreenSelectInit:
         lda     #$03
-        ldy     #$2C
+        ldy     #<soundEffectSlot1_menuScreenSelectInitData
         jsr     initSoundEffectShared
         lda     soundEffectSlot1_menuScreenSelectInitData+2
         sta     soundEffectSlot1SecondaryCounter
@@ -6234,10 +6243,10 @@ LE493:  lda     soundEffectSlot1SecondaryCounter
 LE4AC:  sta     SQ1_HI
 LE4AF:  rts
 
-sq1vol_unknown2_table:
+soundEffectSlot1_lineClearing_vol:
         .byte   $9E,$9B,$99,$96,$94,$93,$92,$91
         .byte   $00
-unknown1_table:
+soundEffectSlot1_lineClearing_lo:
         .byte   $46,$37,$46,$37,$46,$37,$46,$37
         .byte   $70,$80,$90,$A0,$B0,$C0,$D0,$E0
         .byte   $C0,$89,$B8,$68,$A0,$50,$90,$40
@@ -6246,7 +6255,7 @@ soundEffectSlot1_levelUpPlaying:
         bne     LE4AF
         ldy     soundEffectSlot1SecondaryCounter
         inc     soundEffectSlot1SecondaryCounter
-        lda     unknown18_table,y
+        lda     soundEffectSlot1_levelUp_lo,y
         beq     LE4E9
         sta     SQ1_LO
         lda     #$28
@@ -6256,10 +6265,10 @@ LE4E9:  jmp     soundEffectSlot1Playing_stop
 
 soundEffectSlot1_levelUpInit:
         lda     #$06
-        ldy     #$1C
+        ldy     #<soundEffectSlot1_levelUpInitData
         jmp     initSoundEffectShared
 
-unknown18_table:
+soundEffectSlot1_levelUp_lo:
         .byte   $69,$A8,$69,$A8,$8D,$53,$8D,$53
         .byte   $8D,$00,$A9,$10,$8D,$04,$40,$A9
         .byte   $00,$8D,$C9,$06,$8D,$FA,$06,$60
@@ -6287,7 +6296,7 @@ LE51B:  sta     DMC_LEN
 ; Unused
 soundEffectSlot3_donk:
         lda     #$02
-        ldy     #$4C
+        ldy     #<soundEffectSlot3_donkInitData
         jmp     initSoundEffectShared
 
 soundEffectSlot3Playing_advance:
@@ -6312,16 +6321,16 @@ updateSoundEffectSlot3_apu:
         beq     soundEffectSlot3Playing_stop
         sta     TRI_LO
         sta     soundEffectSlot3TertiaryCounter
-        lda     soundEffectSlot3_unknown1InitData+3
+        lda     soundEffectSlot3_fallingAlienInitData+3
         sta     TRI_HI
         rts
 
 ; Unused
 soundEffectSlot3_fallingAlien:
         lda     #$06
-        ldy     #$48
+        ldy     #<soundEffectSlot3_fallingAlienInitData
         jsr     initSoundEffectShared
-        lda     soundEffectSlot3_unknown1InitData+2
+        lda     soundEffectSlot3_fallingAlienInitData+2
         sta     soundEffectSlot3TertiaryCounter
         rts
 
@@ -6512,7 +6521,7 @@ loadMusicTrack:
         iny
         inx
         txa
-        cmp     #$0A
+        cmp     #$0A ; copies 10-byte header to musicDataNoteTableOffset
         bne     @copyByteToMusicData
         lda     #$01
         sta     musicChanNoteDurationRemaining
@@ -6848,7 +6857,7 @@ updateMusicFrame_updateChannel:
         sta     AUDIOTMP4
         tya
         clc
-        sbc     AUDIOTMP4
+        sbc     AUDIOTMP4 ; Subtracts an extra 1 because carry is cleared
         jmp     @noteOffsetApplied
 
 @signMagnitudeIsPositive:
@@ -7016,6 +7025,7 @@ musicGetNextInstructionByte:
         lda     (musicChanTmpAddr),y
         rts
 
+; Instrument envelopes, listed as a series of nibbles corresponding to volume. $FF sustains the last volume, while $F0 releases
 musicChanVolControlTable:
         .addr   LEA76
         .addr   LEA82
@@ -7072,45 +7082,85 @@ LEB0D:  .byte   $85,$51,$F0
 LEB10:  .byte   $63,$31,$F0
 ; Rounds slightly differently, but can use for reference: https://web.archive.org/web/20180315161431if_/http://www.freewebs.com:80/the_bott/NotesTableNTSC.txt
 noteToWaveTable:
+        ; $00: A1, rest, C2, Db2
         .dbyt   $07F0,$0000,$06AE,$064E
+        ; $08: D2, Eb2, E2, F2
         .dbyt   $05F3,$059E,$054D,$0501
+        ; $10: Gb2, G2, Ab2, A2
         .dbyt   $04B9,$0475,$0435,$03F8
+        ; $18: Bb2, B2, C3, Db3
         .dbyt   $03BF,$0389,$0357,$0327
+        ; $20: D3, Eb3, E3, F3
         .dbyt   $02F9,$02CF,$02A6,$0280
+        ; $28: Gb3, G3, Ab3, A3
         .dbyt   $025C,$023A,$021A,$01FC
+        ; $30: Bb3, B4, C4, Db4
         .dbyt   $01DF,$01C4,$01AB,$0193
+        ; $38: D4, Eb4, E4, F4
         .dbyt   $017C,$0167,$0152,$013F
+        ; $40: Gb4, G4, Ab4, A4
         .dbyt   $012D,$011C,$010C,$00FD
+        ; $48: Bb4, B4, C5, Db5
         .dbyt   $00EE,$00E1,$00D4,$00C8
+        ; $50: D5, Eb5, E5, F5
         .dbyt   $00BD,$00B2,$00A8,$009F
+        ; $58: Gb5, G5, Ab5, A5
         .dbyt   $0096,$008D,$0085,$007E
+        ; $60: Bb5, B5, C6, Db6
         .dbyt   $0076,$0070,$0069,$0063
+        ; $68: D6, Eb6, E6, F6
         .dbyt   $005E,$0058,$0053,$004F
+        ; $70: Gb6, G6, Ab6, A6
         .dbyt   $004A,$0046,$0042,$003E
+        ; $78: Bb6, B6, C7, Db7
         .dbyt   $003A,$0037,$0034,$0031
+        ; $80: D7, Eb7, E7, F7
         .dbyt   $002E,$002B,$0029,$0027
+        ; $88: very high, Gb7, G7, Ab7
         .dbyt   $0001,$0024,$0022,$0020
+        ; $90: A7, Bb7, B7, Eb8
         .dbyt   $001E,$001C,$001A,$000A
+        ; $98: Ab8, Db8
         .dbyt   $0010,$0019
+
+; 1/16  note, 1/8 note, 1/4 note, 1/2 note, full note, 3/8 note, 3/4 note, 3/16 note
 noteDurationTable:
+        ; 300 bpm
         .byte   $03,$06,$0C,$18,$30,$12,$24,$09
-        .byte   $08,$04,$02,$01,$04,$08,$10,$20
-        .byte   $40,$18,$30,$0C,$0A,$05,$02,$01
+        .byte   $08,$04,$02,$01
+        ; 225 bpm
+        .byte   $04,$08,$10,$20,$40,$18,$30,$0C
+        .byte   $0A,$05,$02,$01
+        ; 180 bpm
         .byte   $05,$0A,$14,$28,$50,$1E,$3C,$0F
-        .byte   $0D,$06,$02,$01,$06,$0C,$18,$30
-        .byte   $60,$24,$48,$12,$10,$08,$03,$01
-        .byte   $04,$02,$00,$90,$07,$0E,$1C,$38
-        .byte   $70,$2A,$54,$15,$12,$09,$03,$01
-        .byte   $02,$08,$10,$20,$40,$80,$30,$60
-        .byte   $18,$15,$0A,$04,$01,$02,$C0,$09
-        .byte   $12,$24,$48,$90,$36,$6C,$1B,$18
+        .byte   $0D,$06,$02,$01
+        ; 150 bpm
+        .byte   $06,$0C,$18,$30,$60,$24,$48,$12
+        .byte   $10,$08,$03,$01,$04,$02,$00,$90
+        ; 128 bpm
+        .byte   $07,$0E,$1C,$38,$70,$2A,$54,$15
+        .byte   $12,$09,$03,$01,$02
+        ; 112 bpm
+        .byte   $08,$10,$20,$40,$80,$30,$60,$18
+        .byte   $15,$0A,$04,$01,$02,$C0
+        ; 100 bpm
+        .byte   $09,$12,$24,$48,$90,$36,$6C,$1B
+        .byte   $18
+        ; 90 bpm
         .byte   $0A,$14,$28,$50,$A0,$3C,$78,$1E
-        .byte   $1A,$0D,$05,$01,$02,$17,$0B,$16
-        .byte   $2C,$58,$B0,$42,$84,$21,$1D,$0E
-        .byte   $05,$01,$02,$17
+        .byte   $1A,$0D,$05,$01,$02,$17
+        ; 82 bpm
+        .byte   $0B,$16,$2C,$58,$B0,$42,$84,$21
+        .byte   $1D,$0E,$05,$01,$02,$17
 musicDataTableIndex:
         .byte   $00,$0A,$14,$1E,$28,$32,$3C,$46
         .byte   $50,$5A
+
+; First byte corresponds to a key offset that applies to all notes for each channel (excluding noise probably)
+; Value of %0xxxxxxx adds xxxxxxx to each index, while %1xxxxxxx subtracts (xxxxxxx+1) to each index
+; so $0A shifts each note up by 5 half steps and $83 shifts each note down 2 half steps (note table entries are 2 bytes)
+; Second byte controls tempo, indexing into noteDurationTable
+; Each table entry is written into musicDataNoteTableOffset
 musicDataTable:
         .byte   $0A,$24
         .addr   music_titleScreen_sq1Script
@@ -7184,6 +7234,8 @@ music_titleScreen_noiseScript:
         .addr   LFFFF
         .addr   music_titleScreen_noiseScript
 .include "audio/music/music_titlescreen.asm"
+
+; Only 256 bytes can be accessed at a time due to relative addressing, so the various routine addresses are like checkpoints in the music.
 music_music1_sq1Script:
         .addr   music_music1_sq1Routine1
         .addr   music_music1_sq1Routine2

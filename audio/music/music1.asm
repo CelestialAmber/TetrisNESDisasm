@@ -1,3 +1,9 @@
+; There are 3 main types of commands that controls the instrument, duration, and pitch of the note
+; Instrument commands start with $9F and are followed by 2 values, stored into musicChanControl,x and musicVolControl,x
+; musicChanControl,x selects the type of instrument (1-indexed) using the low 5 bytes (high 3 bytes control something else?)
+; High byte of musicVolControl,x is stored in SQ1_VOL, so controls duty cycle and other flags. Low byte unknown
+; Duration commands have the form $Bx, where the x an index into a table of note lengths. It dictates the lengths for all notes after it, until another $Bx command comes up
+; All other bytes are indices into the note table, but also shifted per the note offset param in the song header
 music_music1_sq1Routine1:
         .byte   $9F,$0A,$F1,$B2,$20,$38,$20,$38
         .byte   $9F,$0D,$F1,$B2,$20,$38,$20,$38
