@@ -4,6 +4,7 @@
 	pip install pillow
 	git clone https://github.com/CelestialAmber/TetrisNESDisasm
 	cd TetrisNESDisasm
+	git submodule update --init
 
 To build `tetris.nes`:
 
@@ -17,6 +18,7 @@ In **Terminal**, run:
 	pip install pillow
 	git clone https://github.com/CelestialAmber/TetrisNESDisasm
 	cd TetrisNESDisasm
+	git submodule update --init
 
 	
 To build `tetris.nes`:
@@ -41,6 +43,7 @@ In the **Cygwin terminal**, enter these commands:
 	pip install pillow
 	git clone https://github.com/CelestialAmber/TetrisNESDisasm
 	cd TetrisNESDisasm
+	git submodule update --init
 
 To build `tetris.nes`:
 
