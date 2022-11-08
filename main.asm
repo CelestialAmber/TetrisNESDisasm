@@ -1269,30 +1269,34 @@ savePlayer2State:
 initPlayfieldIfTypeB:
         lda     gameType
         bne     initPlayfieldForTypeB
-        jmp     L8875
+        jmp     endTypeBInit
 
 initPlayfieldForTypeB:
         lda     #$0C
-        sta     generalCounter
-L87E7:  lda     generalCounter
-        beq     L884A
+        sta     generalCounter  ; decrements
+
+typeBRows:  
+        lda     generalCounter
+        beq     initCopyPlayfieldToPlayer2
         lda     #$14
         sec
         sbc     generalCounter
-        sta     generalCounter2
+        sta     generalCounter2  ; row (20 - generalCounter)
         lda     #$00
         sta     player1_vramRow
         sta     player2_vramRow
         lda     #$09
-        sta     generalCounter3
-L87FC:  ldx     #$17
+        sta     generalCounter3 ; column
+
+typeBGarbageInRow:  
+        ldx     #$17
         ldy     #$02
         jsr     generateNextPseudorandomNumber
         lda     rng_seed
         and     #$07
         tay
         lda     rngTable,y
-        sta     generalCounter4
+        sta     generalCounter4 ; random square or blank
         ldx     generalCounter2
         lda     multBy10Table,x
         clc
@@ -1301,18 +1305,20 @@ L87FC:  ldx     #$17
         lda     generalCounter4
         sta     playfield,y
         lda     generalCounter3
-        beq     L8824
+        beq     typeBGuaranteeBlank
         dec     generalCounter3
-        jmp     L87FC
+        jmp     typeBGarbageInRow
 
-L8824:  ldx     #$17
+typeBGuaranteeBlank:  
+        ldx     #$17
         ldy     #$02
         jsr     generateNextPseudorandomNumber
         lda     rng_seed
         and     #$0F
         cmp     #$0A
-        bpl     L8824
-        sta     generalCounter5
+        bpl     typeBGuaranteeBlank
+
+        sta     generalCounter5 ; blanked column
         ldx     generalCounter2
         lda     multBy10Table,x
         clc
@@ -1322,29 +1328,40 @@ L8824:  ldx     #$17
         sta     playfield,y
         jsr     updateAudioWaitForNmiAndResetOamStaging
         dec     generalCounter
-        bne     L87E7
-L884A:  ldx     #$C8
-L884C:  lda     playfield,x
+        bne     typeBRows
+
+initCopyPlayfieldToPlayer2:  
+        ldx     #$C8
+copyPlayfieldToPlayer2:  
+        lda     playfield,x
         sta     playfieldForSecondPlayer,x
         dex
-        bne     L884C
+        bne     copyPlayfieldToPlayer2
+
+; Player1 Blank Lines
         ldx     player1_startHeight
         lda     typeBBlankInitCountByHeightTable,x
         tay
         lda     #$EF
-L885D:  sta     playfield,y
+
+typeBBlankInitPlayer1:  
+        sta     playfield,y
         dey
         cpy     #$FF
-        bne     L885D
+        bne     typeBBlankInitPlayer1
+
+; Player2 Blank Lines
         ldx     player2_startHeight
         lda     typeBBlankInitCountByHeightTable,x
         tay
         lda     #$EF
-L886D:  sta     playfieldForSecondPlayer,y
+typeBBlankInitPlayer2:  
+        sta     playfieldForSecondPlayer,y
         dey
         cpy     #$FF
-        bne     L886D
-L8875:  rts
+        bne     typeBBlankInitPlayer2
+endTypeBInit:  
+        rts
 
 typeBBlankInitCountByHeightTable:
         .byte   $C8,$AA,$96,$78,$64,$50
