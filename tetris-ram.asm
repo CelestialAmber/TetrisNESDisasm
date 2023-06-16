@@ -2,7 +2,11 @@
 tmp1:	.res 1	; $0000
 tmp2:	.res 1	; $0001
 tmp3:	.res 1	; $0002
-.res 20
+.res 2 
+tmpBulkCopyToPpuReturnAddr: .res 1 ; $0005
+.res 14
+patchToPpuAddr: .res 1             ; $0014
+.res 2
 rng_seed:	.res 2	; $0017
 spawnID:	.res 1	; $0019
 spawnCount:	.res 1	; $001A
@@ -79,9 +83,11 @@ player2_garbageHole:	.res 1	; $009A
 spriteXOffset:	.res 1	; $00A0
 spriteYOffset:	.res 1	; $00A1
 spriteIndexInOamContentLookup:	.res 1	; $00A2
-.res 3
-nextPiece_2player:	.res 1	; $00A6
-verticalBlankingWaitRequested_andSomethingElse:	.res 1	; $00A7
+outOfDateRenderFlags: .res 1 ; $00A3
+twoPlayerPieceDelayCounter: .res 1 ; $00A4
+twoPlayerPieceDelayPlayer: .res 1 ; $00A5
+twoPlayerPieceDelayPiece:	.res 1	; $00A6
+gameModeState:	.res 1	; $00A7
 generalCounter:	.res 1	; $00A8
 generalCounter2:	.res 1	; $00A9
 generalCounter3:	.res 1	; $00AA
@@ -90,17 +96,17 @@ generalCounter5:	.res 1	; $00AC
 selectingLevelOrHeight:	.res 1	; $00AD
 originalY:	.res 1	; $00AE
 dropSpeed:	.res 1	; $00AF
-.res 1
+tmpCurrentPiece: .res 1 ; $00B0
 frameCounter:	.res 2	; $00B1
 oamStagingLength:	.res 1	; $00B3
 .res 1
-newlyPressedButtons_mirror:	.res 1	; $00B5
-pressedButtons_mirror:	.res 1	; $00B6
+newlyPressedButtons:	.res 1	; $00B5
+heldButtons:	.res 1	; $00B6
 activePlayer:	.res 1	; $00B7
 playfieldAddr:	.res 2	; $00B8
-.res 1
-totalGarbageInactivePlayer:	.res 1	; $00BB
-totalGarbage:	.res 1	; $00BC
+allegro: .res 1 ; $00BA
+pendingGarbage:	.res 1	; $00BB
+pendingGarbageInactivePlayer:	.res 1	; $00BC
 renderMode:	.res 1	; $00BD
 numberOfPlayers:	.res 1	; $00BE
 nextPiece:	.res 1	; $00BF
@@ -109,18 +115,23 @@ gameType:	.res 1	; $00C1
 musicType:	.res 1	; $00C2
 sleepCounter:	.res 1	; $00C3
 ending:	.res 1	; $00C4
-.res 9
-heldButtons:	.res 1	; $00CE
-repeats:	.res 1	; $00CF
+ending_customVars:	.res 1	; $00C5
+.res 6
+ending_currentSprite: .res 1 ;$00CC
+ending_typeBCathedralFrameDelayCounter: .res 1 ; $00CD
+demo_heldButtons:	.res 1	; $00CE
+demo_repeats:	.res 1	; $00CF
 .res 1
-demoButtonsTable_index:	.res 1	; $00D1
+demoButtonsAddr:	.res 1	; $00D1
 demoButtonsTable_indexOverflowed:	.res 1	; $00D2
 demoIndex:	.res 1	; $00D3
 highScoreEntryNameOffsetForLetter:	.res 1	; $00D4
 highScoreEntryRawPos:	.res 1	; $00D5
 highScoreEntryNameOffsetForRow:	.res 1	; $00D6
 highScoreEntryCurrentLetter:	.res 1	; $00D7
-.res 7
+lineClearStatsByType:	.res 4	; $00D8
+
+.res 3
 displayNextPiece:	.res 1	; $00DF
 AUDIOTMP1:	.res 1	; $00E0
 AUDIOTMP2:	.res 1	; $00E1
@@ -138,12 +149,14 @@ currentAudioSlot:	.res 1	; $00EF
 .res 1
 unreferenced_buttonMirror:  .res 3  ; $00F1
 .res 1
-newlyPressedButtons:	.res 1	; $00F5
-pressedButtons:	.res 1	; $00F6
-getHeldButtons:	.res 1	; $00F7
-.res 3
-joy1Location:	.res 1	; $00FB
+newlyPressedButtons_player1:	.res 1	; $00F5
+newlyPressedButtons_player2:	.res 1	; $00F6
+heldButtons_player1:	.res 1	; $00F7
+heldButtons_player2: .res 1 ; $00F8
 .res 2
+joy1Location:	.res 1	; $00FB
+ppuScrollY: .res 1 ; $00FC
+ppuScrollX: .res 1 ; $00FD
 currentPpuMask:	.res 1	; $00FE
 currentPpuCtrl:	.res 1	; $00FF
 
@@ -185,7 +198,7 @@ musicChanNoteDurationRemaining:	.res $04	; $06B4
 musicChanNoteDuration:	.res $04	; $06B8
 musicChanProgLoopCounter:	.res $04	; $06BC
 musicStagingSq1Sweep:	.res $02	; $06C0
-.res 2
+.res 1
 musicChanNote:  .res 4  ; $06C3
 .res 1
 musicChanInhibit:	.res $03	; $06C8
