@@ -5,3 +5,5 @@
 tetris.lst
 tetris.lbl
 tetris.dbg
+cTools/scan_includes
+cTools/scan_includes.exe
