@@ -131,7 +131,7 @@ highScoreEntryNameOffsetForRow:	.res 1	; $00D6
 highScoreEntryCurrentLetter:	.res 1	; $00D7
 lineClearStatsByType:	.res 4	; $00D8
 
-.res 3
+totalScore: .res 3 ; $00DC
 displayNextPiece:	.res 1	; $00DF
 AUDIOTMP1:	.res 1	; $00E0
 AUDIOTMP2:	.res 1	; $00E1
