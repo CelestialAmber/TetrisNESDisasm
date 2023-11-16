@@ -1275,7 +1275,7 @@ initPlayfieldForTypeB:
         lda     #$0C
         sta     generalCounter  ; decrements
 
-typeBRows:  
+typeBRows:
         lda     generalCounter
         beq     initCopyPlayfieldToPlayer2
         lda     #$14
@@ -1288,7 +1288,7 @@ typeBRows:
         lda     #$09
         sta     generalCounter3 ; column
 
-typeBGarbageInRow:  
+typeBGarbageInRow:
         ldx     #$17
         ldy     #$02
         jsr     generateNextPseudorandomNumber
@@ -1309,7 +1309,7 @@ typeBGarbageInRow:
         dec     generalCounter3
         jmp     typeBGarbageInRow
 
-typeBGuaranteeBlank:  
+typeBGuaranteeBlank:
         ldx     #$17
         ldy     #$02
         jsr     generateNextPseudorandomNumber
@@ -1330,9 +1330,9 @@ typeBGuaranteeBlank:
         dec     generalCounter
         bne     typeBRows
 
-initCopyPlayfieldToPlayer2:  
+initCopyPlayfieldToPlayer2:
         ldx     #$C8
-copyPlayfieldToPlayer2:  
+copyPlayfieldToPlayer2:
         lda     playfield,x
         sta     playfieldForSecondPlayer,x
         dex
@@ -1344,7 +1344,7 @@ copyPlayfieldToPlayer2:
         tay
         lda     #$EF
 
-typeBBlankInitPlayer1:  
+typeBBlankInitPlayer1:
         sta     playfield,y
         dey
         cpy     #$FF
@@ -1355,12 +1355,12 @@ typeBBlankInitPlayer1:
         lda     typeBBlankInitCountByHeightTable,x
         tay
         lda     #$EF
-typeBBlankInitPlayer2:  
+typeBBlankInitPlayer2:
         sta     playfieldForSecondPlayer,y
         dey
         cpy     #$FF
         bne     typeBBlankInitPlayer2
-endTypeBInit:  
+endTypeBInit:
         rts
 
 typeBBlankInitCountByHeightTable:
