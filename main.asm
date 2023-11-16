@@ -237,6 +237,16 @@ JOY2_APUFC      := $4017                        ; read: bits 0-4 joy data lines 
 MMC1_CHR0       := $BFFF
 MMC1_CHR1       := $DFFF
 
+BUTTON_A := $80
+BUTTON_B := $40
+BUTTON_SELECT := $20
+BUTTON_START := $10
+BUTTON_UP := $08
+BUTTON_DOWN := $04
+BUTTON_LEFT := $02
+BUTTON_RIGHT := $01
+BUTTON_DPAD := BUTTON_UP | BUTTON_DOWN | BUTTON_LEFT | BUTTON_RIGHT
+
 .segment        "PRG_chunk1": absolute
 
 ; incremented to reset MMC1 reg
@@ -530,7 +540,7 @@ gameMode_legalScreen:
         sta     generalCounter
 @waitForStartButton:
         lda     newlyPressedButtons_player1
-        cmp     #$10
+        cmp     #BUTTON_START
         beq     @continueToNextScreen
         jsr     updateAudioWaitForNmiAndResetOamStaging
         dec     generalCounter
@@ -568,7 +578,7 @@ gameMode_titleScreen:
 @waitForStartButton:
         jsr     updateAudioWaitForNmiAndResetOamStaging
         lda     newlyPressedButtons_player1
-        cmp     #$10
+        cmp     #BUTTON_START
         beq     @startButtonPressed
         lda     frameCounter+1
         cmp     #$05
@@ -637,7 +647,7 @@ L830B:  lda     #$FF
         ldy     #$02
         jsr     memset_page
         lda     newlyPressedButtons_player1
-        cmp     #$01
+        cmp     #BUTTON_RIGHT
         bne     @rightNotPressed
         lda     #$01
         sta     gameType
@@ -647,7 +657,7 @@ L830B:  lda     #$FF
 
 @rightNotPressed:
         lda     newlyPressedButtons_player1
-        cmp     #$02
+        cmp     #BUTTON_LEFT
         bne     @leftNotPressed
         lda     #$00
         sta     gameType
@@ -655,7 +665,7 @@ L830B:  lda     #$FF
         sta     soundEffectSlot1Init
 @leftNotPressed:
         lda     newlyPressedButtons_player1
-        cmp     #$04
+        cmp     #BUTTON_DOWN
         bne     @downNotPressed
         lda     #$01
         sta     soundEffectSlot1Init
@@ -668,7 +678,7 @@ L830B:  lda     #$FF
         jsr     setMusicTrack
 @downNotPressed:
         lda     newlyPressedButtons_player1
-        cmp     #$08
+        cmp     #BUTTON_UP
         bne     @upNotPressed
         lda     #$01
         sta     soundEffectSlot1Init
@@ -680,7 +690,7 @@ L830B:  lda     #$FF
         jsr     setMusicTrack
 @upNotPressed:
         lda     newlyPressedButtons_player1
-        cmp     #$10
+        cmp     #BUTTON_START
         bne     @startNotPressed
         lda     #$02
         sta     soundEffectSlot1Init
@@ -689,7 +699,7 @@ L830B:  lda     #$FF
 
 @startNotPressed:
         lda     newlyPressedButtons_player1
-        cmp     #$40
+        cmp     #BUTTON_B
         bne     @bNotPressed
         lda     #$02
         sta     soundEffectSlot1Init
@@ -807,10 +817,10 @@ gameMode_levelMenu_processPlayer1Navigation:
         lda     selectingLevelOrHeight
         sta     originalY
         lda     newlyPressedButtons_player1
-        cmp     #$10
+        cmp     #BUTTON_START
         bne     @checkBPressed
         lda     heldButtons_player1
-        cmp     #$90
+        cmp     #BUTTON_A+BUTTON_START
         bne     @startAndANotPressed
         lda     player1_startLevel
         clc
@@ -826,7 +836,7 @@ gameMode_levelMenu_processPlayer1Navigation:
 
 @checkBPressed:
         lda     newlyPressedButtons_player1
-        cmp     #$40
+        cmp     #BUTTON_B
         bne     @chooseRandomHole_player1
         lda     #$02
         sta     soundEffectSlot1Init
@@ -857,7 +867,7 @@ gameMode_levelMenu_processPlayer1Navigation:
 ; Starts by checking if right pressed
 gameMode_levelMenu_handleLevelHeightNavigation:
         lda     newlyPressedButtons
-        cmp     #$01
+        cmp     #BUTTON_RIGHT
         bne     @checkLeftPressed
         lda     #$01
         sta     soundEffectSlot1Init
@@ -876,7 +886,7 @@ gameMode_levelMenu_handleLevelHeightNavigation:
         inc     startHeight
 @checkLeftPressed:
         lda     newlyPressedButtons
-        cmp     #$02
+        cmp     #BUTTON_LEFT
         bne     @checkDownPressed
         lda     #$01
         sta     soundEffectSlot1Init
@@ -893,7 +903,7 @@ gameMode_levelMenu_handleLevelHeightNavigation:
         dec     startHeight
 @checkDownPressed:
         lda     newlyPressedButtons
-        cmp     #$04
+        cmp     #BUTTON_DOWN
         bne     @checkUpPressed
         lda     #$01
         sta     soundEffectSlot1Init
@@ -916,7 +926,7 @@ gameMode_levelMenu_handleLevelHeightNavigation:
         inc     startHeight
 @checkUpPressed:
         lda     newlyPressedButtons
-        cmp     #$08
+        cmp     #BUTTON_UP
         bne     @checkAPressed
         lda     #$01
         sta     soundEffectSlot1Init
@@ -941,7 +951,7 @@ gameMode_levelMenu_handleLevelHeightNavigation:
         lda     gameType
         beq     @showSelection
         lda     newlyPressedButtons
-        cmp     #$80
+        cmp     #BUTTON_A
         bne     @showSelection
         lda     #$01
         sta     soundEffectSlot1Init
@@ -1382,7 +1392,7 @@ gameModeState_updateCountersAndNonPlayerState:
         inc     twoPlayerPieceDelayCounter
 @checkSelectButtonPressed:
         lda     newlyPressedButtons_player1
-        and     #$20
+        and     #BUTTON_SELECT
         beq     @ret
         lda     displayNextPiece
         eor     #$01
@@ -1398,8 +1408,8 @@ rotate_tetrimino:
         asl     a
         tax
         lda     newlyPressedButtons
-        and     #$80
-        cmp     #$80
+        and     #BUTTON_A
+        cmp     #BUTTON_A
         bne     @aNotPressed
         inx
         lda     rotationTable,x
@@ -1412,8 +1422,8 @@ rotate_tetrimino:
 
 @aNotPressed:
         lda     newlyPressedButtons
-        and     #$40
-        cmp     #$40
+        and     #BUTTON_B
+        cmp     #BUTTON_B
         bne     @ret
         lda     rotationTable,x
         sta     currentPiece
@@ -1438,7 +1448,7 @@ drop_tetrimino:
         lda     autorepeatY
         bpl     @notBeginningOfGame
         lda     newlyPressedButtons
-        and     #$04
+        and     #BUTTON_DOWN
         beq     @incrementAutorepeatY
         lda     #$00
         sta     autorepeatY
@@ -1446,11 +1456,11 @@ drop_tetrimino:
         bne     @autorepeating
 @playing:
         lda     heldButtons
-        and     #$03
+        and     #BUTTON_LEFT+BUTTON_RIGHT
         bne     @lookupDropSpeed
         lda     newlyPressedButtons
-        and     #$0F
-        cmp     #$04
+        and     #BUTTON_DPAD
+        cmp     #BUTTON_DOWN
         bne     @lookupDropSpeed
         lda     #$01
         sta     autorepeatY
@@ -1458,8 +1468,8 @@ drop_tetrimino:
 
 @autorepeating:
         lda     heldButtons
-        and     #$0F
-        cmp     #$04
+        and     #BUTTON_DPAD
+        cmp     #BUTTON_DOWN
         beq     @downPressed
         lda     #$00
         sta     autorepeatY
@@ -1516,13 +1526,13 @@ shift_tetrimino:
         lda     tetriminoX
         sta     originalY
         lda     heldButtons
-        and     #$04
+        and     #BUTTON_DOWN
         bne     @ret
         lda     newlyPressedButtons
-        and     #$03
+        and     #BUTTON_LEFT+BUTTON_RIGHT
         bne     @resetAutorepeatX
         lda     heldButtons
-        and     #$03
+        and     #BUTTON_LEFT+BUTTON_RIGHT
         beq     @ret
         inc     autorepeatX
         lda     autorepeatX
@@ -1537,7 +1547,7 @@ shift_tetrimino:
         sta     autorepeatX
 @buttonHeldDown:
         lda     heldButtons
-        and     #$01
+        and     #BUTTON_RIGHT
         beq     @notPressingRight
         inc     tetriminoX
         jsr     isPositionValid
@@ -1548,7 +1558,7 @@ shift_tetrimino:
 
 @notPressingRight:
         lda     heldButtons
-        and     #$02
+        and     #BUTTON_LEFT
         beq     @ret
         dec     tetriminoX
         jsr     isPositionValid
@@ -3052,7 +3062,7 @@ playState_updateGameOverCurtain:
 
 @checkForStartButton:
         lda     newlyPressedButtons_player1
-        cmp     #$10
+        cmp     #BUTTON_START
         bne     @ret2
 @exitGame:
         lda     #$00
@@ -3501,7 +3511,7 @@ pollControllerButtons:
         beq     @recording
         jsr     pollController
         lda     newlyPressedButtons_player1
-        cmp     #$10
+        cmp     #BUTTON_START
         beq     @startButtonPressed
         lda     demo_repeats
         beq     @finishedMove
@@ -3611,7 +3621,7 @@ setMusicTrack:
 ; A+B+Select+Start
 gameModeState_checkForResetKeyCombo:
         lda     heldButtons_player1
-        cmp     #$F0
+        cmp     #BUTTON_A+BUTTON_B+BUTTON_SELECT+BUTTON_START
         beq     @reset
         inc     gameModeState
         rts
@@ -3770,7 +3780,7 @@ L9F28:  lda     generalCounter5
 L9F45:  jsr     render_ending
         jsr     updateAudioWaitForNmiAndResetOamStaging
         lda     newlyPressedButtons_player1
-        cmp     #$10
+        cmp     #BUTTON_START
         bne     L9F45
         lda     player1_levelNumber
         sta     levelNumber
@@ -4177,7 +4187,7 @@ highScoreEntryScreen:
 @flickerStateSelected_checkForStartPressed:
         jsr     loadSpriteIntoOamStaging
         lda     newlyPressedButtons_player1
-        and     #$10
+        and     #BUTTON_START
         beq     @checkForAOrRightPressed
         lda     #$02
         sta     soundEffectSlot1Init
@@ -4185,7 +4195,7 @@ highScoreEntryScreen:
 
 @checkForAOrRightPressed:
         lda     newlyPressedButtons_player1
-        and     #$81
+        and     #BUTTON_A+BUTTON_RIGHT
         beq     @checkForBOrLeftPressed
         lda     #$01
         sta     soundEffectSlot1Init
@@ -4197,7 +4207,7 @@ highScoreEntryScreen:
         sta     highScoreEntryNameOffsetForLetter
 @checkForBOrLeftPressed:
         lda     newlyPressedButtons_player1
-        and     #$42
+        and     #BUTTON_B+BUTTON_LEFT
         beq     @checkForDownPressed
         lda     #$01
         sta     soundEffectSlot1Init
@@ -4208,7 +4218,7 @@ highScoreEntryScreen:
         sta     highScoreEntryNameOffsetForLetter
 @checkForDownPressed:
         lda     heldButtons_player1
-        and     #$04
+        and     #BUTTON_DOWN
         beq     @checkForUpPressed
         lda     frameCounter
         and     #$07
@@ -4233,7 +4243,7 @@ highScoreEntryScreen:
         sta     highScoreNames,x
 @checkForUpPressed:
         lda     heldButtons_player1
-        and     #$08
+        and     #BUTTON_UP
         beq     @waitForVBlank
         lda     frameCounter
         and     #$07
@@ -4313,7 +4323,7 @@ gameModeState_startButtonHandling:
         cmp     #$05
         bne     @checkIfInGame
         lda     newlyPressedButtons_player1
-        cmp     #$10
+        cmp     #BUTTON_START
         bne     @checkIfInGame
         lda     #$01
         sta     gameMode
@@ -4324,7 +4334,7 @@ gameModeState_startButtonHandling:
         cmp     #$03
         bne     @ret
         lda     newlyPressedButtons_player1
-        and     #$10
+        and     #BUTTON_START
         bne     @startPressed
         jmp     @ret
 
@@ -4355,7 +4365,7 @@ gameModeState_startButtonHandling:
         sta     spriteIndexInOamContentLookup
         jsr     loadSpriteIntoOamStaging
         lda     newlyPressedButtons_player1
-        cmp     #$10
+        cmp     #BUTTON_START
         beq     @resume
         jsr     updateAudioWaitForNmiAndResetOamStaging
         jmp     @pauseLoop
@@ -4971,7 +4981,7 @@ LA95D:  jsr     render_ending
         lda     ending_customVars
         bne     LA95D
         lda     newlyPressedButtons_player1
-        cmp     #$10
+        cmp     #BUTTON_START
         bne     LA95D
         rts
 
