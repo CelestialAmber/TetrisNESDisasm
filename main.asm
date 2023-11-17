@@ -204,49 +204,8 @@ highScoreScoresA:= $0730
 highScoreScoresB:= $073C
 highScoreLevels := $0748
 initMagic       := $0750                        ; Initialized to a hard-coded number. When resetting, if not correct number then it knows this is a cold boot
-PPUCTRL         := $2000
-PPUMASK         := $2001
-PPUSTATUS       := $2002
-OAMADDR         := $2003
-OAMDATA         := $2004
-PPUSCROLL       := $2005
-PPUADDR         := $2006
-PPUDATA         := $2007
-SQ1_VOL         := $4000
-SQ1_SWEEP       := $4001
-SQ1_LO          := $4002
-SQ1_HI          := $4003
-SQ2_VOL         := $4004
-SQ2_SWEEP       := $4005
-SQ2_LO          := $4006
-SQ2_HI          := $4007
-TRI_LINEAR      := $4008
-TRI_LO          := $400A
-TRI_HI          := $400B
-NOISE_VOL       := $400C
-NOISE_LO        := $400E
-NOISE_HI        := $400F
-DMC_FREQ        := $4010
-DMC_RAW         := $4011
-DMC_START       := $4012                        ; start << 6 + $C000
-DMC_LEN         := $4013                        ; len << 4 + 1
-OAMDMA          := $4014
-SND_CHN         := $4015
-JOY1            := $4016
-JOY2_APUFC      := $4017                        ; read: bits 0-4 joy data lines (bit 0 being normal controller), bits 6-7 are FC inhibit and mode
 
-MMC1_CHR0       := $BFFF
-MMC1_CHR1       := $DFFF
-
-BUTTON_A := $80
-BUTTON_B := $40
-BUTTON_SELECT := $20
-BUTTON_START := $10
-BUTTON_UP := $08
-BUTTON_DOWN := $04
-BUTTON_LEFT := $02
-BUTTON_RIGHT := $01
-BUTTON_DPAD := BUTTON_UP | BUTTON_DOWN | BUTTON_LEFT | BUTTON_RIGHT
+.include "constants.asm"
 
 .segment        "PRG_chunk1": absolute
 
@@ -276,7 +235,7 @@ nmi:    pha
         lda     #$00
         adc     frameCounter+1
         sta     frameCounter+1
-        ldx     #$17
+        ldx     #rng_seed
         ldy     #$02
         jsr     generateNextPseudorandomNumber
         lda     #$00
@@ -387,9 +346,9 @@ initRamContinued:
         jsr     LAA82
         lda     #$2C
         jsr     LAA82
-        lda     #$EF
-        ldx     #$04
-        ldy     #$05
+        lda     #EMPTY_TILE
+        ldx     #>playfield
+        ldy     #>playfieldForSecondPlayer
         jsr     memset_page
         jsr     waitForVBlankAndEnableNmi
         jsr     updateAudioWaitForNmiAndResetOamStaging
@@ -519,9 +478,9 @@ gameMode_legalScreen:
         sta     renderMode
         jsr     updateAudioWaitForNmiAndDisablePpuRendering
         jsr     disableNmi
-        lda     #$00
+        lda     #TITLE_MENU_TILESET
         jsr     changeCHRBank0
-        lda     #$00
+        lda     #TITLE_MENU_TILESET
         jsr     changeCHRBank1
         jsr     bulkCopyToPpu
         .addr   legal_screen_palette
@@ -532,8 +491,8 @@ gameMode_legalScreen:
         jsr     updateAudioWaitForNmiAndEnablePpuRendering
         jsr     updateAudioWaitForNmiAndResetOamStaging
         lda     #$00
-        ldx     #$02
-        ldy     #$02
+        ldx     #>oamStaging
+        ldy     #>oamStaging
         jsr     memset_page
         lda     #$FF
         jsr     sleep_for_a_vblanks
@@ -558,9 +517,9 @@ gameMode_titleScreen:
         sta     displayNextPiece
         jsr     updateAudioWaitForNmiAndDisablePpuRendering
         jsr     disableNmi
-        lda     #$00
+        lda     #TITLE_MENU_TILESET
         jsr     changeCHRBank0
-        lda     #$00
+        lda     #TITLE_MENU_TILESET
         jsr     changeCHRBank1
         jsr     bulkCopyToPpu
         .addr   menu_palette
@@ -571,8 +530,8 @@ gameMode_titleScreen:
         jsr     updateAudioWaitForNmiAndEnablePpuRendering
         jsr     updateAudioWaitForNmiAndResetOamStaging
         lda     #$00
-        ldx     #$02
-        ldy     #$02
+        ldx     #>oamStaging
+        ldy     #>oamStaging
         jsr     memset_page
         lda     #$00
         sta     frameCounter+1
@@ -622,7 +581,7 @@ render_mode_legal_and_title_screens:
 
 gameMode_gameTypeMenu:
         inc     initRam
-        lda     #$10
+        lda     #MMC1_4K_CHR
         jsr     setMMC1Control
         lda     #$01
         sta     renderMode
@@ -632,9 +591,9 @@ gameMode_gameTypeMenu:
         .addr   menu_palette
         jsr     bulkCopyToPpu
         .addr   game_type_menu_nametable
-        lda     #$00
+        lda     #TITLE_MENU_TILESET
         jsr     changeCHRBank0
-        lda     #$00
+        lda     #TITLE_MENU_TILESET
         jsr     changeCHRBank1
         jsr     waitForVBlankAndEnableNmi
         jsr     updateAudioWaitForNmiAndResetOamStaging
@@ -644,8 +603,8 @@ gameMode_gameTypeMenu:
         lda     musicSelectionTable,x
         jsr     setMusicTrack
 L830B:  lda     #$FF
-        ldx     #$02
-        ldy     #$02
+        ldx     #>oamStaging
+        ldy     #>oamStaging
         jsr     memset_page
         lda     newlyPressedButtons_player1
         cmp     #BUTTON_RIGHT
@@ -758,16 +717,16 @@ L830B:  lda     #$FF
 
 gameMode_levelMenu:
         inc     initRam
-        lda     #$10
+        lda     #MMC1_4K_CHR
         jsr     setMMC1Control
         jsr     updateAudio2
         lda     #$01
         sta     renderMode
         jsr     updateAudioWaitForNmiAndDisablePpuRendering
         jsr     disableNmi
-        lda     #$00
+        lda     #TITLE_MENU_TILESET
         jsr     changeCHRBank0
-        lda     #$00
+        lda     #TITLE_MENU_TILESET
         jsr     changeCHRBank1
         jsr     bulkCopyToPpu
         .addr   menu_palette
@@ -845,7 +804,7 @@ gameMode_levelMenu_processPlayer1Navigation:
         rts
 
 @chooseRandomHole_player1:
-        ldx     #$17
+        ldx     #rng_seed
         ldy     #$02
         jsr     generateNextPseudorandomNumber
         lda     rng_seed
@@ -854,7 +813,7 @@ gameMode_levelMenu_processPlayer1Navigation:
         bpl     @chooseRandomHole_player1
         sta     player1_garbageHole
 @chooseRandomHole_player2:
-        ldx     #$17
+        ldx     #rng_seed
         ldy     #$02
         jsr     generateNextPseudorandomNumber
         lda     rng_seed
@@ -1038,9 +997,9 @@ render_mode_menu_screens:
 gameModeState_initGameBackground:
         jsr     updateAudioWaitForNmiAndDisablePpuRendering
         jsr     disableNmi
-        lda     #$03
+        lda     #GAME_TILESET
         jsr     changeCHRBank0
-        lda     #$03
+        lda     #GAME_TILESET
         jsr     changeCHRBank1
         jsr     bulkCopyToPpu
         .addr   game_palette
@@ -1129,15 +1088,15 @@ game_typeb_nametable_patch:
         .byte   $FE,$23,$57,$3D,$3E,$3E,$3E,$3E
         .byte   $3E,$3E,$3F,$FD
 gameModeState_initGameState:
-        lda     #$EF
-        ldx     #$04
-        ldy     #$04
+        lda     #EMPTY_TILE
+        ldx     #>playfield
+        ldy     #>playfield
         jsr     memset_page
         ldx     #$0F
         lda     #$00
 ; statsByType
 @initStatsByType:
-        sta     $03EF,x
+        sta     statsByType-1,x
         dex
         bne     @initStatsByType
         lda     #$05
@@ -1184,7 +1143,7 @@ gameModeState_initGameState:
         sta     player1_currentPiece
         sta     player2_currentPiece
         jsr     incrementPieceStat
-        ldx     #$17
+        ldx     #rng_seed
         ldy     #$02
         jsr     generateNextPseudorandomNumber
         jsr     chooseNextTetrimino
@@ -1196,7 +1155,7 @@ gameModeState_initGameState:
         sta     player1_lines
         sta     player2_lines
 @skipTypeBInit:
-        lda     #$47
+        lda     #RENDER_STATS+RENDER_SCORE+RENDER_LEVEL+RENDER_LINES
         sta     outOfDateRenderFlags
         jsr     updateAudioWaitForNmiAndResetOamStaging
         jsr     initPlayfieldIfTypeB
@@ -1210,7 +1169,7 @@ gameModeState_initGameState:
 makePlayer1Active:
         lda     #$01
         sta     activePlayer
-        lda     #$04
+        lda     #>playfield
         sta     playfieldAddr+1
         lda     newlyPressedButtons_player1
         sta     newlyPressedButtons
@@ -1229,7 +1188,7 @@ makePlayer1Active:
 makePlayer2Active:
         lda     #$02
         sta     activePlayer
-        lda     #$05
+        lda     #>playfieldForSecondPlayer
         sta     playfieldAddr+1
         lda     newlyPressedButtons_player2
         sta     newlyPressedButtons
@@ -1300,7 +1259,7 @@ typeBRows:
         sta     generalCounter3 ; column
 
 typeBGarbageInRow:
-        ldx     #$17
+        ldx     #rng_seed
         ldy     #$02
         jsr     generateNextPseudorandomNumber
         lda     rng_seed
@@ -1321,7 +1280,7 @@ typeBGarbageInRow:
         jmp     typeBGarbageInRow
 
 typeBGuaranteeBlank:
-        ldx     #$17
+        ldx     #rng_seed
         ldy     #$02
         jsr     generateNextPseudorandomNumber
         lda     rng_seed
@@ -1335,7 +1294,7 @@ typeBGuaranteeBlank:
         clc
         adc     generalCounter5
         tay
-        lda     #$EF
+        lda     #EMPTY_TILE
         sta     playfield,y
         jsr     updateAudioWaitForNmiAndResetOamStaging
         dec     generalCounter
@@ -1353,7 +1312,7 @@ copyPlayfieldToPlayer2:
         ldx     player1_startHeight
         lda     typeBBlankInitCountByHeightTable,x
         tay
-        lda     #$EF
+        lda     #EMPTY_TILE
 
 typeBBlankInitPlayer1:
         sta     playfield,y
@@ -1365,7 +1324,7 @@ typeBBlankInitPlayer1:
         ldx     player2_startHeight
         lda     typeBBlankInitCountByHeightTable,x
         tay
-        lda     #$EF
+        lda     #EMPTY_TILE
 typeBBlankInitPlayer2:
         sta     playfieldForSecondPlayer,y
         dey
@@ -1377,12 +1336,12 @@ endTypeBInit:
 typeBBlankInitCountByHeightTable:
         .byte   $C8,$AA,$96,$78,$64,$50
 rngTable:
-        .byte   $EF,$7B,$EF,$7C,$7D,$7D,$EF
-        .byte   $EF
+        .byte   EMPTY_TILE,$7B,EMPTY_TILE,$7C,$7D,$7D,EMPTY_TILE
+        .byte   EMPTY_TILE
 gameModeState_updateCountersAndNonPlayerState:
-        lda     #$03
+        lda     #GAME_TILESET
         jsr     changeCHRBank0
-        lda     #$03
+        lda     #GAME_TILESET
         jsr     changeCHRBank1
         lda     #$00
         sta     oamStagingLength
@@ -2344,7 +2303,7 @@ isPositionValid:
         adc     selectingLevelOrHeight
         tay
         lda     (playfieldAddr),y
-        cmp     #$EF
+        cmp     #EMPTY_TILE
         bcc     @invalid
         lda     orientationTable,x
         clc
@@ -2367,7 +2326,7 @@ render_mode_play_and_demo:
         lda     player1_playState
         cmp     #$04
         bne     @playStateNotDisplayLineClearingAnimation
-        lda     #$04
+        lda     #>playfield
         sta     playfieldAddr+1
         lda     player1_rowY
         sta     rowY
@@ -2393,7 +2352,7 @@ render_mode_play_and_demo:
 @playStateNotDisplayLineClearingAnimation:
         lda     player1_vramRow
         sta     vramRow
-        lda     #$04
+        lda     #>playfield
         sta     playfieldAddr+1
         jsr     copyPlayfieldRowToVRAM
         jsr     copyPlayfieldRowToVRAM
@@ -2408,7 +2367,7 @@ render_mode_play_and_demo:
         lda     player2_playState
         cmp     #$04
         bne     @player2PlayStateNotDisplayLineClearingAnimation
-        lda     #$05
+        lda     #>playfieldForSecondPlayer
         sta     playfieldAddr+1
         lda     player2_rowY
         sta     rowY
@@ -2434,7 +2393,7 @@ render_mode_play_and_demo:
 @player2PlayStateNotDisplayLineClearingAnimation:
         lda     player2_vramRow
         sta     vramRow
-        lda     #$05
+        lda     #>playfieldForSecondPlayer
         sta     playfieldAddr+1
         jsr     copyPlayfieldRowToVRAM
         jsr     copyPlayfieldRowToVRAM
@@ -2444,7 +2403,7 @@ render_mode_play_and_demo:
         sta     player2_vramRow
 @renderLines:
         lda     outOfDateRenderFlags
-        and     #$01
+        and     #RENDER_LINES
         beq     @renderLevel
         lda     numberOfPlayers
         cmp     #$02
@@ -2458,7 +2417,7 @@ render_mode_play_and_demo:
         lda     player1_lines
         jsr     twoDigsToPPU
         lda     outOfDateRenderFlags
-        and     #$FE
+        and     #$FF^RENDER_LINES
         sta     outOfDateRenderFlags
         jmp     @renderLevel
 
@@ -2480,11 +2439,11 @@ render_mode_play_and_demo:
         lda     player2_lines
         jsr     twoDigsToPPU
         lda     outOfDateRenderFlags
-        and     #$FE
+        and     #$FF^RENDER_LINES
         sta     outOfDateRenderFlags
 @renderLevel:
         lda     outOfDateRenderFlags
-        and     #$02
+        and     #RENDER_LEVEL
         beq     @renderScore
         lda     numberOfPlayers
         cmp     #$02
@@ -2500,14 +2459,14 @@ render_mode_play_and_demo:
         jsr     twoDigsToPPU
         jsr     updatePaletteForLevel
         lda     outOfDateRenderFlags
-        and     #$FD
+        and     #$FF^RENDER_LEVEL
         sta     outOfDateRenderFlags
 @renderScore:
         lda     numberOfPlayers
         cmp     #$02
         beq     @renderStats
         lda     outOfDateRenderFlags
-        and     #$04
+        and     #RENDER_SCORE
         beq     @renderStats
         lda     #$21
         sta     PPUADDR
@@ -2520,14 +2479,14 @@ render_mode_play_and_demo:
         lda     player1_score
         jsr     twoDigsToPPU
         lda     outOfDateRenderFlags
-        and     #$FB
+        and     #$FF^RENDER_SCORE
         sta     outOfDateRenderFlags
 @renderStats:
         lda     numberOfPlayers
         cmp     #$02
         beq     @renderTetrisFlashAndSound
         lda     outOfDateRenderFlags
-        and     #$40
+        and     #RENDER_STATS
         beq     @renderTetrisFlashAndSound
         lda     #$00
         sta     tmpCurrentPiece
@@ -2548,7 +2507,7 @@ render_mode_play_and_demo:
         cmp     #$07
         bne     @renderPieceStat
         lda     outOfDateRenderFlags
-        and     #$BF
+        and     #$FF^RENDER_STATS
         sta     outOfDateRenderFlags
 @renderTetrisFlashAndSound:
         lda     #$3F
@@ -2688,7 +2647,7 @@ updateLineClearingAnimation:
 
 @twoPlayers:
         lda     playfieldAddr+1
-        cmp     #$04
+        cmp     #>playfield
         bne     @player2
         lda     generalCounter
         sec
@@ -2887,7 +2846,7 @@ pickRandomTetrimino:
         cmp     spawnID
         bne     useNewSpawnID
 @invalidIndex:
-        ldx     #$17
+        ldx     #rng_seed
         ldy     #$02
         jsr     generateNextPseudorandomNumber
         lda     rng_seed
@@ -2945,7 +2904,7 @@ incrementPieceStat:
 L9996:  lda     generalCounter
         sta     statsByType,x
         lda     outOfDateRenderFlags
-        ora     #$40
+        ora     #RENDER_STATS
         sta     outOfDateRenderFlags
         rts
 
@@ -3098,7 +3057,7 @@ playState_checkForCompletedRows:
         ldx     #$0A
 @checkIfRowComplete:
         lda     (playfieldAddr),y
-        cmp     #$EF
+        cmp     #EMPTY_TILE
         beq     @rowNotComplete
         iny
         dex
@@ -3121,7 +3080,7 @@ playState_checkForCompletedRows:
         dey
         cpy     #$FF
         bne     @movePlayfieldDownOneRow
-        lda     #$EF
+        lda     #EMPTY_TILE
         ldy     #$00
 @clearRowTopRow:
         sta     (playfieldAddr),y
@@ -3234,7 +3193,7 @@ playState_updateLinesAndStatistics:
         sta     lineClearStatsByType,x
 @noCarry:
         lda     outOfDateRenderFlags
-        ora     #$01
+        ora     #RENDER_LINES
         sta     outOfDateRenderFlags
         lda     gameType
         beq     @gameTypeA
@@ -3302,7 +3261,7 @@ L9BD0:  lda     lines+1
         lda     #$06
         sta     soundEffectSlot1Init
         lda     outOfDateRenderFlags
-        ora     #$02
+        ora     #RENDER_LEVEL
         sta     outOfDateRenderFlags
 L9BFB:  dex
         bne     incrementLines
@@ -3330,7 +3289,7 @@ L9C18:  lda     score
         sta     score
         inc     score+1
 L9C27:  lda     outOfDateRenderFlags
-        ora     #$04
+        ora     #RENDER_SCORE
         sta     outOfDateRenderFlags
 addLineClearPoints:
         lda     #$00
@@ -3391,7 +3350,7 @@ L9C84:  lda     score+2
 L9C94:  dec     generalCounter
         bne     L9C37
         lda     outOfDateRenderFlags
-        ora     #$04
+        ora     #RENDER_SCORE
         sta     outOfDateRenderFlags
         lda     #$00
         sta     completedLines
@@ -3447,9 +3406,9 @@ gameModeState_handleGameOver:
         lda     #$01
         sta     player1_playState
         sta     player2_playState
-        lda     #$EF
-        ldx     #$04
-        ldy     #$05
+        lda     #EMPTY_TILE
+        ldx     #>playfield
+        ldy     #>playfieldForSecondPlayer
         jsr     memset_page
         lda     #$00
         sta     player1_vramRow
@@ -3472,7 +3431,7 @@ updateMusicSpeed:
         ldx     #$0A
 @checkForBlockInRow:
         lda     (playfieldAddr),y
-        cmp     #$EF
+        cmp     #EMPTY_TILE
         bne     @foundBlockInRow
         iny
         dex
@@ -3691,26 +3650,26 @@ endingAnimationB:
         cmp     #$09
         bne     @checkPenguinOrOstrichEnding
         ; castle ending for level 9/19
-        lda     #$01
+        lda     #TYPEB_ENDING_TILESET
         jsr     changeCHRBank0
-        lda     #$01
+        lda     #TYPEB_ENDING_TILESET
         jsr     changeCHRBank1
         jsr     bulkCopyToPpu
         .addr   type_b_lvl9_ending_nametable
         jmp     @startAnimation
 
 @checkPenguinOrOstrichEnding:
-        ldx     #$03    ; game_tileset for penguin/ostrich sprites
+        ldx     #GAME_TILESET
         lda     levelNumber
         cmp     #$02    ; Penguin ending for level 2/12
         beq     @normalEnding
         cmp     #$06    ; Ostrich for 6/16
         beq     @normalEnding
-        ldx     #$02    ; typeB_ending_tileset
+        ldx     #TYPEA_ENDING_TILESET
 @normalEnding:
         txa
         jsr     changeCHRBank0
-        lda     #$02
+        lda     #TYPEA_ENDING_TILESET
         jsr     changeCHRBank1
         jsr     bulkCopyToPpu
         .addr   type_b_ending_nametable
@@ -3884,8 +3843,7 @@ showHighScores:
         jmp     showHighScores_ret
 
 showHighScores_real:
-        jsr     bulkCopyToPpu      ;not using @-label due to MMC1_Control in PAL
-MMC1_Control    := * + 1
+        jsr     bulkCopyToPpu
         .addr   high_scores_nametable
         lda     #$00
         sta     generalCounter2
@@ -4141,7 +4099,7 @@ highScoreIndexToHighScoreScoresOffset:
         .byte   $00,$03,$06,$09,$0C,$0F,$12,$15
 highScoreEntryScreen:
         inc     initRam
-        lda     #$10
+        lda     #MMC1_4K_CHR
         jsr     setMMC1Control
         lda     #$09
         jsr     setMusicTrack
@@ -4149,9 +4107,9 @@ highScoreEntryScreen:
         sta     renderMode
         jsr     updateAudioWaitForNmiAndDisablePpuRendering
         jsr     disableNmi
-        lda     #$00
+        lda     #TITLE_MENU_TILESET
         jsr     changeCHRBank0
-        lda     #$00
+        lda     #TITLE_MENU_TILESET
         jsr     changeCHRBank1
         jsr     bulkCopyToPpu
         .addr   menu_palette
@@ -4290,7 +4248,7 @@ highScoreEntryScreen:
         tax
         lda     highScoreNames,x
         sta     highScoreEntryCurrentLetter
-        lda     #$80
+        lda     #RENDER_HIGH_SCORE_LETTER
         sta     outOfDateRenderFlags
         jsr     updateAudioWaitForNmiAndResetOamStaging
         jmp     @renderFrame
@@ -4304,7 +4262,7 @@ highScoreNamePosToX:
         .byte   $48,$50,$58,$60,$68,$70
 render_mode_congratulations_screen:
         lda     outOfDateRenderFlags
-        and     #$80
+        and     #RENDER_HIGH_SCORE_LETTER
         beq     @ret
         lda     highScoreEntryRawPos
         and     #$03
@@ -4369,8 +4327,8 @@ gameModeState_startButtonHandling:
         lda     #$16
         sta     PPUMASK
         lda     #$FF
-        ldx     #$02
-        ldy     #$02
+        ldx     #>oamStaging
+        ldy     #>oamStaging
         jsr     memset_page
 @pauseLoop:
         lda     #$70
@@ -4976,9 +4934,9 @@ unreferenced_data6:
 endingAnimationA:
         jsr     updateAudioWaitForNmiAndDisablePpuRendering
         jsr     disableNmi
-        lda     #$02
+        lda     #TYPEA_ENDING_TILESET
         jsr     changeCHRBank0
-        lda     #$02
+        lda     #TYPEA_ENDING_TILESET
         jsr     changeCHRBank1
         jsr     bulkCopyToPpu
         .addr   type_a_ending_nametable
@@ -5112,8 +5070,8 @@ updateAudioWaitForNmiAndResetOamStaging:
         lda     verticalBlankingInterval
         beq     @checkForNmi
         lda     #$FF
-        ldx     #$02
-        ldy     #$02
+        ldx     #>oamStaging
+        ldy     #>oamStaging
         jsr     memset_page
         rts
 
@@ -7433,11 +7391,11 @@ reset:  cld
         dex
         txs
         inc     reset
-        lda     #$10
+        lda     #MMC1_4K_CHR
         jsr     setMMC1Control
-        lda     #$00
+        lda     #TITLE_MENU_TILESET
         jsr     changeCHRBank0
-        lda     #$00
+        lda     #TITLE_MENU_TILESET
         jsr     changeCHRBank1
         lda     #$00
         jsr     changePRGBank
@@ -7457,7 +7415,6 @@ MMC1_PRG:
 
         .addr   nmi
         .addr   reset
-LFFFF           := * + 1
         .addr   irq
 
 ; End of "VECTORS" segment
