@@ -114,6 +114,7 @@ highScoreEntryRawPos:= $00D5                    ; High score position 0=1st type
 highScoreEntryNameOffsetForRow:= $00D6          ; Relative to start of table
 highScoreEntryCurrentLetter:= $00D7
 lineClearStatsByType:= $00D8                    ; bcd. one entry for each of single, double, triple, tetris
+totalScore      := $00DC
 displayNextPiece:= $00DF
 AUDIOTMP1       := $00E0
 AUDIOTMP2       := $00E1
@@ -3047,7 +3048,7 @@ playState_updateGameOverCurtain:
         bcc     @checkForStartButton
         lda     #$80
         jsr     sleep_for_a_vblanks
-        jsr     endingAnimation_maybe
+        jsr     endingAnimation
         jmp     @exitGame
 
 @checkForStartButton:
@@ -3641,62 +3642,70 @@ playState_incrementPlayState:
 playState_noop:
         rts
 
-endingAnimation_maybe:
+endingAnimation:
         lda     #$02
         sta     spriteIndexInOamContentLookup
         lda     #$04
         sta     renderMode
         lda     gameType
-        bne     L9E49
-        jmp     LA926
+        bne     endingAnimationB
+        jmp     endingAnimationA
 
-L9E49:  ldx     player1_levelNumber
+bTypeLevelBonus := generalCounter4
+bTypeHeightBonus := generalCounter5
+
+endingAnimationB:
+        ldx     player1_levelNumber
         lda     levelDisplayTable,x
         and     #$0F
         sta     levelNumber
         lda     #$00
-        sta     $DE
-        sta     $DD
-        sta     $DC
+        sta     totalScore+2
+        sta     totalScore+1
+        sta     totalScore
         lda     levelNumber
         asl     a
         asl     a
         asl     a
         asl     a
-        sta     generalCounter4
+        sta     bTypeLevelBonus
         lda     player1_startHeight
         asl     a
         asl     a
         asl     a
         asl     a
-        sta     generalCounter5
+        sta     bTypeHeightBonus
         jsr     updateAudioWaitForNmiAndDisablePpuRendering
         jsr     disableNmi
         lda     levelNumber
         cmp     #$09
-        bne     L9E88
+        bne     @checkPenguinOrOstrichEnding
+        ; castle ending for level 9/19
         lda     #$01
         jsr     changeCHRBank0
         lda     #$01
         jsr     changeCHRBank1
         jsr     bulkCopyToPpu
         .addr   type_b_lvl9_ending_nametable
-        jmp     L9EA4
+        jmp     @startAnimation
 
-L9E88:  ldx     #$03
+@checkPenguinOrOstrichEnding:
+        ldx     #$03    ; game_tileset for penguin/ostrich sprites
         lda     levelNumber
-        cmp     #$02
-        beq     L9E96
-        cmp     #$06
-        beq     L9E96
-        ldx     #$02
-L9E96:  txa
+        cmp     #$02    ; Penguin ending for level 2/12
+        beq     @normalEnding
+        cmp     #$06    ; Ostrich for 6/16
+        beq     @normalEnding
+        ldx     #$02    ; typeB_ending_tileset
+@normalEnding:
+        txa
         jsr     changeCHRBank0
         lda     #$02
         jsr     changeCHRBank1
         jsr     bulkCopyToPpu
         .addr   type_b_ending_nametable
-L9EA4:  jsr     bulkCopyToPpu
+@startAnimation:
+        jsr     bulkCopyToPpu
         .addr   ending_palette
         jsr     ending_initTypeBVars
         jsr     waitForVBlankAndEnableNmi
@@ -3710,11 +3719,11 @@ L9EA4:  jsr     bulkCopyToPpu
         lda     #$80
         jsr     render_endingUnskippable
         lda     player1_score
-        sta     $DC
+        sta     totalScore
         lda     player1_score+1
-        sta     $DD
+        sta     totalScore+1
         lda     player1_score+2
-        sta     $DE
+        sta     totalScore+2
         lda     #$02
         sta     soundEffectSlot1Init
         lda     #$00
@@ -3723,92 +3732,99 @@ L9EA4:  jsr     bulkCopyToPpu
         sta     player1_score+2
         lda     #$40
         jsr     render_endingUnskippable
-        lda     generalCounter4
-        beq     L9F12
-L9EE8:  dec     generalCounter4
-        lda     generalCounter4
+        lda     bTypeLevelBonus
+        beq     @checkForHeightBonus
+@addLevelBonus:
+        dec     bTypeLevelBonus
+        lda     bTypeLevelBonus
         and     #$0F
         cmp     #$0F
-        bne     L9EFA
-        lda     generalCounter4
+        bne     @noLevelCarry
+        lda     bTypeLevelBonus
         and     #$F0
         ora     #$09
-        sta     generalCounter4
-L9EFA:  lda     generalCounter4
-        jsr     L9F62
+        sta     bTypeLevelBonus
+@noLevelCarry:
+        lda     bTypeLevelBonus
+        jsr     add100Points
         lda     #$01
         sta     soundEffectSlot1Init
         lda     #$02
         jsr     render_endingUnskippable
-        lda     generalCounter4
-        bne     L9EE8
+        lda     bTypeLevelBonus
+        bne     @addLevelBonus
         lda     #$40
         jsr     render_endingUnskippable
-L9F12:  lda     generalCounter5
-        beq     L9F45
-L9F16:  dec     generalCounter5
-        lda     generalCounter5
+@checkForHeightBonus:
+        lda     bTypeHeightBonus
+        beq     @startNotPressed
+@addHeightBonus:
+        dec     bTypeHeightBonus
+        lda     bTypeHeightBonus
         and     #$0F
         cmp     #$0F
-        bne     L9F28
-        lda     generalCounter5
+        bne     @noHeightCarry
+        lda     bTypeHeightBonus
         and     #$F0
         ora     #$09
-        sta     generalCounter5
-L9F28:  lda     generalCounter5
-        jsr     L9F62
+        sta     bTypeHeightBonus
+@noHeightCarry:
+        lda     bTypeHeightBonus
+        jsr     add100Points
         lda     #$01
         sta     soundEffectSlot1Init
         lda     #$02
         jsr     render_endingUnskippable
-        lda     generalCounter5
-        bne     L9F16
+        lda     bTypeHeightBonus
+        bne     @addHeightBonus
         lda     #$02
         sta     soundEffectSlot1Init
         lda     #$40
         jsr     render_endingUnskippable
-L9F45:  jsr     render_ending
+@startNotPressed:
+        jsr     render_ending
         jsr     updateAudioWaitForNmiAndResetOamStaging
         lda     newlyPressedButtons_player1
         cmp     #$10
-        bne     L9F45
+        bne     @startNotPressed
         lda     player1_levelNumber
         sta     levelNumber
-        lda     $DC
+        lda     totalScore
         sta     score
-        lda     $DD
+        lda     totalScore+1
         sta     score+1
-        lda     $DE
+        lda     totalScore+2
         sta     score+2
         rts
 
-L9F62:  lda     #$01
+add100Points:
+        lda     #$01
         clc
-        adc     $DD
-        sta     $DD
+        adc     totalScore+1
+        sta     totalScore+1
         and     #$0F
         cmp     #$0A
         bcc     L9F76
-        lda     $DD
+        lda     totalScore+1
         clc
         adc     #$06
-        sta     $DD
+        sta     totalScore+1
 L9F76:  and     #$F0
         cmp     #$A0
         bcc     L9F85
-        lda     $DD
+        lda     totalScore+1
         clc
         adc     #$60
-        sta     $DD
-        inc     $DE
-L9F85:  lda     $DE
+        sta     totalScore+1
+        inc     totalScore+2
+L9F85:  lda     totalScore+2
         and     #$0F
         cmp     #$0A
         bcc     L9F94
-        lda     $DE
+        lda     totalScore+2
         clc
         adc     #$06
-        sta     $DE
+        sta     totalScore+2
 L9F94:  rts
 
 render_mode_ending_animation:
@@ -3840,11 +3856,11 @@ render_mode_ending_animation:
         sta     PPUADDR
         lda     #$2E
         sta     PPUADDR
-        lda     $DE
+        lda     totalScore+2
         jsr     twoDigsToPPU
-        lda     $DD
+        lda     totalScore+1
         jsr     twoDigsToPPU
-        lda     $DC
+        lda     totalScore
         jsr     twoDigsToPPU
 L9FE9:  ldy     #$00
         sty     PPUSCROLL
@@ -4388,20 +4404,21 @@ playState_bTypeGoalCheck:
         iny
         jmp     @copySuccessGraphic
 
-@graphicCopied:  lda     #$00
+@graphicCopied:
+        lda     #$00
         sta     player1_vramRow
         jsr     sleep_for_14_vblanks
         lda     #$00
         sta     renderMode
         lda     #$80
         jsr     sleep_for_a_vblanks
-        jsr     endingAnimation_maybe
+        jsr     endingAnimation
         lda     #$00
         sta     playState
         inc     gameModeState
         rts
 
-@ret:  inc     playState
+@ret:   inc     playState
         rts
 
 typebSuccessGraphic:
@@ -4945,7 +4962,9 @@ ending_patchToPpu_typeAOver120k:
         .byte   $FD
 unreferenced_data6:
         .byte   $FC
-LA926:  jsr     updateAudioWaitForNmiAndDisablePpuRendering
+
+endingAnimationA:
+        jsr     updateAudioWaitForNmiAndDisablePpuRendering
         jsr     disableNmi
         lda     #$02
         jsr     changeCHRBank0
@@ -4955,7 +4974,7 @@ LA926:  jsr     updateAudioWaitForNmiAndDisablePpuRendering
         .addr   type_a_ending_nametable
         jsr     bulkCopyToPpu
         .addr   ending_palette
-        jsr     LA96E
+        jsr     selectEndingScreen
         jsr     waitForVBlankAndEnableNmi
         jsr     updateAudioWaitForNmiAndResetOamStaging
         jsr     updateAudioWaitForNmiAndEnablePpuRendering
@@ -4966,36 +4985,39 @@ LA926:  jsr     updateAudioWaitForNmiAndDisablePpuRendering
         jsr     setMusicTrack
         lda     #$80
         jsr     render_endingUnskippable
-LA95D:  jsr     render_ending
+@endingSleep:
+        jsr     render_ending
         jsr     updateAudioWaitForNmiAndResetOamStaging
         lda     ending_customVars
-        bne     LA95D
+        bne     @endingSleep
         lda     newlyPressedButtons_player1
         cmp     #$10
-        bne     LA95D
+        bne     @endingSleep
         rts
 
-LA96E:  lda     #$00
+selectEndingScreen:
+; score+2 is compared to $03 in @curtainFinished
+        lda     #$00 ; >= 30,000
         sta     ending
         lda     player1_score+2
         cmp     #$05
         bcc     ending_selected
-        lda     #$01
+        lda     #$01 ; >= 50,000
         sta     ending
         lda     player1_score+2
         cmp     #$07
         bcc     ending_selected
-        lda     #$02
+        lda     #$02 ; >= 70,000
         sta     ending
         lda     player1_score+2
         cmp     #$10
         bcc     ending_selected
-        lda     #$03
+        lda     #$03 ; >= 100,000
         sta     ending
         lda     player1_score+2
         cmp     #$12
         bcc     ending_selected
-        lda     #$04
+        lda     #$04 ; >= 120,000
         sta     ending
         lda     #>ending_patchToPpu_typeAOver120k
         sta     patchToPpuAddr+1
