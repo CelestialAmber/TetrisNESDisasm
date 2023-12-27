@@ -207,6 +207,7 @@ initMagic       := $0750                        ; Initialized to a hard-coded nu
 
 .include "constants.asm"
 
+
 .segment        "PRG_chunk1": absolute
 
 ; incremented to reset MMC1 reg
@@ -494,9 +495,9 @@ gameMode_legalScreen:
         ldx     #>oamStaging
         ldy     #>oamStaging
         jsr     memset_page
-        lda     #$FF
+        lda     #LEGAL_SLEEP_TIME
         jsr     sleep_for_a_vblanks
-        lda     #$FF
+        lda     #LEGAL_SLEEP_TIME
         sta     generalCounter
 @waitForStartButton:
         lda     newlyPressedButtons_player1
@@ -687,7 +688,7 @@ L830B:  lda     #$FF
         lda     #$01
         sta     spriteIndexInOamContentLookup
         lda     frameCounter
-        and     #$03
+        and     #MENU_CURSOR_MASK
         bne     @flickerCursorPair1
         lda     #$02
         sta     spriteIndexInOamContentLookup
@@ -706,7 +707,7 @@ L830B:  lda     #$FF
         lda     #$67
         sta     spriteXOffset
         lda     frameCounter
-        and     #$03
+        and     #MENU_CURSOR_MASK
         bne     @flickerCursorPair2
         lda     #$02
         sta     spriteIndexInOamContentLookup
@@ -922,7 +923,7 @@ gameMode_levelMenu_handleLevelHeightNavigation:
         lda     selectingLevelOrHeight
         bne     @showSelectionLevel
         lda     frameCounter
-        and     #$03
+        and     #MENU_CURSOR_MASK
         beq     @skipShowingSelectionLevel
 @showSelectionLevel:
         ldx     startLevel
@@ -948,7 +949,7 @@ gameMode_levelMenu_handleLevelHeightNavigation:
         lda     selectingLevelOrHeight
         beq     @showSelectionHeight
         lda     frameCounter
-        and     #$03
+        and     #MENU_CURSOR_MASK
         beq     @ret
 @showSelectionHeight:
         ldx     startHeight
@@ -1136,7 +1137,7 @@ gameModeState_initGameState:
         sta     demoButtonsAddr+1
         lda     #$03
         sta     renderMode
-        lda     #$A0
+        lda     #INITIAL_AUTOREPEAT_Y
         sta     player1_autorepeatY
         sta     player2_autorepeatY
         jsr     chooseNextTetrimino
@@ -1476,10 +1477,18 @@ drop_tetrimino:
         jmp     @ret
 
 framesPerDropTable:
-        .byte   $30,$2B,$26,$21,$1C,$17,$12,$0D
-        .byte   $08,$06,$05,$05,$05,$04,$04,$04
-        .byte   $03,$03,$03,$02,$02,$02,$02,$02
-        .byte   $02,$02,$02,$02,$02,$01
+.if PAL = 1
+    .byte   $24,$20,$1D,$19,$16,$12,$0F,$0B
+    .byte   $07,$05,$04,$04,$04,$03,$03,$03
+    .byte   $02,$02,$02,$01,$01,$01,$01,$01
+    .byte   $01,$01,$01,$01,$01,$01
+.else
+    .byte   $30,$2B,$26,$21,$1C,$17,$12,$0D
+    .byte   $08,$06,$05,$05,$05,$04,$04,$04
+    .byte   $03,$03,$03,$02,$02,$02,$02,$02
+    .byte   $02,$02,$02,$02,$02,$01
+.endif
+
 unreferenced_framesPerDropTable:
         .byte   $01,$01
 shift_tetrimino:
@@ -1496,9 +1505,9 @@ shift_tetrimino:
         beq     @ret
         inc     autorepeatX
         lda     autorepeatX
-        cmp     #$10
+        cmp     #DAS_RESET
         bmi     @ret
-        lda     #$0A
+        lda     #DAS_DELAY
         sta     autorepeatX
         jmp     @buttonHeldDown
 
@@ -1530,7 +1539,7 @@ shift_tetrimino:
 @restoreX:
         lda     originalY
         sta     tetriminoX
-        lda     #$10
+        lda     #DAS_RESET
         sta     autorepeatX
 @ret:   rts
 
@@ -3015,7 +3024,7 @@ playState_updateGameOverCurtain:
         lda     player1_score+2
         cmp     #$03
         bcc     @checkForStartButton
-        lda     #$80
+        lda     #ENDING_SLEEP_TIME_1
         jsr     sleep_for_a_vblanks
         jsr     endingAnimation
         jmp     @exitGame
@@ -3517,6 +3526,11 @@ pollControllerButtons:
 
 @recording:
         jsr     pollController
+.if PAL = 1
+        lda     heldButtons_player1
+        and     #$DF
+        sta     heldButtons_player1
+.endif
         lda     gameMode
         cmp     #$05
         bne     @ret2
@@ -3685,7 +3699,7 @@ endingAnimationB:
         sta     renderMode
         lda     #$0A
         jsr     setMusicTrack
-        lda     #$80
+        lda     #ENDING_SLEEP_TIME_1
         jsr     render_endingUnskippable
         lda     player1_score
         sta     totalScore
@@ -3699,7 +3713,7 @@ endingAnimationB:
         sta     player1_score
         sta     player1_score+1
         sta     player1_score+2
-        lda     #$40
+        lda     #ENDING_SLEEP_TIME_2
         jsr     render_endingUnskippable
         lda     bTypeLevelBonus
         beq     @checkForHeightBonus
@@ -3718,11 +3732,11 @@ endingAnimationB:
         jsr     add100Points
         lda     #$01
         sta     soundEffectSlot1Init
-        lda     #$02
+        lda     #ENDING_SLEEP_TIME_3
         jsr     render_endingUnskippable
         lda     bTypeLevelBonus
         bne     @addLevelBonus
-        lda     #$40
+        lda     #ENDING_SLEEP_TIME_2
         jsr     render_endingUnskippable
 @checkForHeightBonus:
         lda     bTypeHeightBonus
@@ -3742,13 +3756,13 @@ endingAnimationB:
         jsr     add100Points
         lda     #$01
         sta     soundEffectSlot1Init
-        lda     #$02
+        lda     #ENDING_SLEEP_TIME_3
         jsr     render_endingUnskippable
         lda     bTypeHeightBonus
         bne     @addHeightBonus
         lda     #$02
         sta     soundEffectSlot1Init
-        lda     #$40
+        lda     #ENDING_SLEEP_TIME_2
         jsr     render_endingUnskippable
 @startNotPressed:
         jsr     render_ending
@@ -4154,7 +4168,7 @@ highScoreEntryScreen:
         lda     #$0E
         sta     spriteIndexInOamContentLookup
         lda     frameCounter
-        and     #$03
+        and     #MENU_CURSOR_MASK
         bne     @flickerStateSelected_checkForStartPressed
         lda     #$02
         sta     spriteIndexInOamContentLookup
@@ -4356,9 +4370,17 @@ gameModeState_startButtonHandling:
 
 playState_bTypeGoalCheck:
         lda     gameType
-        beq     @ret
+.if PAL = 1
+        beq     checkSelectHeldToAddPoints
+        lda     heldButtons_player1
+        and     #$20
+        bne     @gameOver
+.else
+        beq     playState_bTypeGoalCheck_ret
+.endif
         lda     lines
-        bne     @ret
+        bne     playState_bTypeGoalCheck_ret
+@gameOver:
         lda     #$02
         jsr     setMusicTrack
         ldy     #$46
@@ -4386,7 +4408,8 @@ playState_bTypeGoalCheck:
         inc     gameModeState
         rts
 
-@ret:   inc     playState
+playState_bTypeGoalCheck_ret:
+        inc     playState
         rts
 
 typebSuccessGraphic:
@@ -4408,6 +4431,20 @@ sleep_for_a_vblanks:
         lda     sleepCounter
         bne     @loop
         rts
+
+.if PAL = 1
+checkSelectHeldToAddPoints:
+        lda     heldButtons_player1
+        and     #$20
+        beq     playState_bTypeGoalCheck_ret
+        inc     score+2
+        inc     player1_score+2
+        lda     outOfDateRenderFlags
+        ora     #$04
+        sta     outOfDateRenderFlags
+        jmp     playState_bTypeGoalCheck_ret
+.endif
+
 
 ending_initTypeBVars:
         lda     #$00
@@ -4461,9 +4498,9 @@ ending_typeBConcertPatchToPpuForHeight:
         .addr   @height4
         .addr   @height5
 @heightUnused:
-        lda     #$A8
+        lda     #>ending_patchToPpu_typeBConcertHeightUnused
         sta     patchToPpuAddr+1
-        lda     #$22
+        lda     #<ending_patchToPpu_typeBConcertHeightUnused
         sta     patchToPpuAddr
         jsr     patchToPpu
 @height0:
@@ -4550,8 +4587,12 @@ ending_typeBConcert:
         lda     #$47
         sta     spriteYOffset
         lda     frameCounter
+.if PAL = 1
+        and     #$04
+.else
         and     #$08
         lsr     a
+.endif
         lsr     a
         lsr     a
         clc
@@ -4603,8 +4644,12 @@ ending_typeBConcert:
         lda     #$A7
         sta     spriteYOffset
         lda     frameCounter
+.if PAL = 1
+        and     #$08
+.else
         and     #$10
         lsr     a
+.endif
         lsr     a
         lsr     a
         lsr     a
@@ -4632,8 +4677,12 @@ ending_typeBConcert:
         lda     #$D7
         sta     spriteYOffset
         lda     frameCounter
+.if PAL = 1
+        and     #$08
+.else
         and     #$10
         lsr     a
+.endif
         lsr     a
         lsr     a
         lsr     a
@@ -4646,8 +4695,12 @@ ending_typeBConcert:
         lda     #$D7
         sta     spriteYOffset
         lda     frameCounter
+.if PAL = 1
+        and     #$08
+.else
         and     #$10
         lsr     a
+.endif
         lsr     a
         lsr     a
         lsr     a
@@ -4661,8 +4714,12 @@ ending_typeBConcert:
         lda     #$77
         sta     spriteYOffset
         lda     frameCounter
+.if PAL = 1
+        and     #$08
+.else
         and     #$10
         lsr     a
+.endif
         lsr     a
         lsr     a
         lsr     a
@@ -4951,7 +5008,7 @@ endingAnimationA:
         sta     renderMode
         lda     #$0A
         jsr     setMusicTrack
-        lda     #$80
+        lda     #ENDING_SLEEP_TIME_1
         jsr     render_endingUnskippable
 @endingSleep:
         jsr     render_ending
@@ -5583,7 +5640,11 @@ type_a_ending_nametable:
 .segment        "unreferenced_data1": absolute
 
 unreferenced_data1:
+.if PAL = 1
+        .incbin "data/unreferenced_data1_pal.bin"
+.else
         .incbin "data/unreferenced_data1.bin"
+.endif
 
 ; End of "unreferenced_data1" segment
 .code
@@ -6160,7 +6221,7 @@ soundEffectSlot1_rotateTetriminoPlaying:
         jmp     copyToSq1Channel
 
 soundEffectSlot1_tetrisAchievedInit:
-        lda     #$05
+        lda     #SFX_TETRIS_INIT
         ldy     #<soundEffectSlot1_tetrisAchievedInitData
         jsr     LE417
         lda     #$10
@@ -6173,7 +6234,7 @@ soundEffectSlot1_tetrisAchievedPlaying:
 LE417:  jmp     initSoundEffectShared
 
 soundEffectSlot1_lineCompletedInit:
-        lda     #$05
+        lda     #SFX_LINE_COMPLETE_INIT
         ldy     #<soundEffectSlot1_lineCompletedInitData
         jsr     LE417
         lda     #$08
@@ -6184,7 +6245,7 @@ soundEffectSlot1_lineCompletedPlaying:
         ldy     #<soundEffectSlot1_lineCompletedInitData
         bne     LE442
 soundEffectSlot1_lineClearingInit:
-        lda     #$04
+        lda     #SFX_LINECLEAR_INIT
         ldy     #<soundEffectSlot1_lineClearingInitData
         jsr     LE417
         lda     #$00
@@ -6271,7 +6332,7 @@ soundEffectSlot1_levelUpPlaying:
 LE4E9:  jmp     soundEffectSlot1Playing_stop
 
 soundEffectSlot1_levelUpInit:
-        lda     #$06
+        lda     #SFX_LEVELUP_INIT
         ldy     #<soundEffectSlot1_levelUpInitData
         jmp     initSoundEffectShared
 
@@ -7130,8 +7191,19 @@ noteToWaveTable:
         ; $98: Ab8, Db8
         .dbyt   $0010,$0019
 
-; 1/16  note, 1/8 note, 1/4 note, 1/2 note, full note, 3/8 note, 3/4 note, 3/16 note
 noteDurationTable:
+.if PAL = 1
+        .byte   $02,$05,$0A,$14,$28,$0F,$1E,$03
+        .byte   $02,$04,$08,$10,$20,$0C,$18,$06
+        .byte   $05,$02,$01,$01,$03,$06,$0C,$18
+        .byte   $30,$12,$24,$09,$08,$04,$02,$01
+        .byte   $04,$08,$10,$20,$40,$18,$30,$0C
+        .byte   $0A,$05,$02,$01,$05,$0A,$14,$28
+        .byte   $50,$1E,$3C,$0F,$0D,$06,$02,$01
+        .byte   $06,$0C,$18,$30,$60,$24,$48,$12
+        .byte   $10,$08,$03,$01,$04,$02,$00,$90
+.else
+; 1/16  note, 1/8 note, 1/4 note, 1/2 note, full note, 3/8 note, 3/4 note, 3/16 note
         ; 300 bpm
         .byte   $03,$06,$0C,$18,$30,$12,$24,$09
         .byte   $08,$04,$02,$01
@@ -7159,6 +7231,7 @@ noteDurationTable:
         ; 82 bpm
         .byte   $0B,$16,$2C,$58,$B0,$42,$84,$21
         .byte   $1D,$0E,$05,$01,$02,$17
+.endif
 musicDataTableIndex:
         .byte   $00,$0A,$14,$1E,$28,$32,$3C,$46
         .byte   $50,$5A
@@ -7169,7 +7242,11 @@ musicDataTableIndex:
 ; Second byte controls tempo, indexing into noteDurationTable
 ; Each table entry is written into musicDataNoteTableOffset
 musicDataTable:
+.if PAL = 1
+        .byte   $0A,$2C
+.else
         .byte   $0A,$24
+.endif
         .addr   music_titleScreen_sq1Script
         .addr   music_titleScreen_sq2Script
         .addr   music_titleScreen_triScript
@@ -7179,42 +7256,74 @@ musicDataTable:
         .addr   music_bTypeGoalAchieved_sq2Script
         .addr   music_bTypeGoalAchieved_triScript
         .addr   music_bTypeGoalAchieved_noiseScript
+.if PAL = 1
+        .byte   $81,$2C
+.else
         .byte   $81,$24
+.endif
         .addr   music_music1_sq1Script
         .addr   music_music1_sq2Script
         .addr   music_music1_triScript
         .addr   music_music1_noiseScript
+.if PAL = 1
+        .byte   $83,$2C
+.else
         .byte   $83,$24
+.endif
         .addr   music_music2_sq1Script
         .addr   music_music2_sq2Script
         .addr   music_music2_triScript
         .addr   music_music2_noiseScript
+.if PAL = 1
+        .byte   $81,$2C
+.else
         .byte   $81,$24
+.endif
         .addr   music_music3_sq1Script
         .addr   music_music3_sq2Script
         .addr   music_music3_triScript
         .addr   LFFFF
+.if PAL = 1
+        .byte   $81,$08
+.else
         .byte   $81,$00
+.endif
         .addr   music_music1_sq1Script
         .addr   music_music1_sq2Script
         .addr   music_music1_triScript
         .addr   music_music1_noiseScript
+.if PAL = 1
+        .byte   $83,$14
+.else
         .byte   $83,$0C
+.endif
         .addr   music_music2_sq1Script
         .addr   music_music2_sq2Script
         .addr   music_music2_triScript
         .addr   music_music2_noiseScript
+.if PAL = 1
+        .byte   $81,$14
+.else
         .byte   $81,$0C
+.endif
         .addr   music_music3_sq1Script
         .addr   music_music3_sq2Script
         .addr   music_music3_triScript
         .addr   LFFFF
+.if PAL = 1
+        .byte   $00,$20
+.else
         .byte   $00,$18
+.endif
         .addr   music_congratulations_sq1Script
         .addr   music_congratulations_sq2Script
         .addr   music_congratulations_triScript
         .addr   music_congratulations_noiseScript
+.if PAL = 1
+        .byte   $8F,$2C
+.else
         .byte   $8F,$24
+.endif
         .addr   music_endings_sq1Script
         .addr   music_endings_sq2Script
         .addr   music_endings_triScript
