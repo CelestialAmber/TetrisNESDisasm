@@ -478,9 +478,9 @@ gameMode_legalScreen:
         sta     renderMode
         jsr     updateAudioWaitForNmiAndDisablePpuRendering
         jsr     disableNmi
-        lda     #TITLE_MENU_TILESET
+        lda     #CHR_TITLE_MENU
         jsr     changeCHRBank0
-        lda     #TITLE_MENU_TILESET
+        lda     #CHR_TITLE_MENU
         jsr     changeCHRBank1
         jsr     bulkCopyToPpu
         .addr   legal_screen_palette
@@ -517,9 +517,9 @@ gameMode_titleScreen:
         sta     displayNextPiece
         jsr     updateAudioWaitForNmiAndDisablePpuRendering
         jsr     disableNmi
-        lda     #TITLE_MENU_TILESET
+        lda     #CHR_TITLE_MENU
         jsr     changeCHRBank0
-        lda     #TITLE_MENU_TILESET
+        lda     #CHR_TITLE_MENU
         jsr     changeCHRBank1
         jsr     bulkCopyToPpu
         .addr   menu_palette
@@ -581,7 +581,7 @@ render_mode_legal_and_title_screens:
 
 gameMode_gameTypeMenu:
         inc     initRam
-        lda     #MMC1_4K_CHR
+        lda     #MMC1_4KCHR_32KPRG_H_MIRROR
         jsr     setMMC1Control
         lda     #$01
         sta     renderMode
@@ -591,9 +591,9 @@ gameMode_gameTypeMenu:
         .addr   menu_palette
         jsr     bulkCopyToPpu
         .addr   game_type_menu_nametable
-        lda     #TITLE_MENU_TILESET
+        lda     #CHR_TITLE_MENU
         jsr     changeCHRBank0
-        lda     #TITLE_MENU_TILESET
+        lda     #CHR_TITLE_MENU
         jsr     changeCHRBank1
         jsr     waitForVBlankAndEnableNmi
         jsr     updateAudioWaitForNmiAndResetOamStaging
@@ -717,16 +717,16 @@ L830B:  lda     #$FF
 
 gameMode_levelMenu:
         inc     initRam
-        lda     #MMC1_4K_CHR
+        lda     #MMC1_4KCHR_32KPRG_H_MIRROR
         jsr     setMMC1Control
         jsr     updateAudio2
         lda     #$01
         sta     renderMode
         jsr     updateAudioWaitForNmiAndDisablePpuRendering
         jsr     disableNmi
-        lda     #TITLE_MENU_TILESET
+        lda     #CHR_TITLE_MENU
         jsr     changeCHRBank0
-        lda     #TITLE_MENU_TILESET
+        lda     #CHR_TITLE_MENU
         jsr     changeCHRBank1
         jsr     bulkCopyToPpu
         .addr   menu_palette
@@ -997,9 +997,9 @@ render_mode_menu_screens:
 gameModeState_initGameBackground:
         jsr     updateAudioWaitForNmiAndDisablePpuRendering
         jsr     disableNmi
-        lda     #GAME_TILESET
+        lda     #CHR_GAME
         jsr     changeCHRBank0
-        lda     #GAME_TILESET
+        lda     #CHR_GAME
         jsr     changeCHRBank1
         jsr     bulkCopyToPpu
         .addr   game_palette
@@ -1339,9 +1339,9 @@ rngTable:
         .byte   EMPTY_TILE,$7B,EMPTY_TILE,$7C,$7D,$7D,EMPTY_TILE
         .byte   EMPTY_TILE
 gameModeState_updateCountersAndNonPlayerState:
-        lda     #GAME_TILESET
+        lda     #CHR_GAME
         jsr     changeCHRBank0
-        lda     #GAME_TILESET
+        lda     #CHR_GAME
         jsr     changeCHRBank1
         lda     #$00
         sta     oamStagingLength
@@ -3650,26 +3650,26 @@ endingAnimationB:
         cmp     #$09
         bne     @checkPenguinOrOstrichEnding
         ; castle ending for level 9/19
-        lda     #TYPEB_ENDING_TILESET
+        lda     #CHR_TYPEB_ENDING
         jsr     changeCHRBank0
-        lda     #TYPEB_ENDING_TILESET
+        lda     #CHR_TYPEB_ENDING
         jsr     changeCHRBank1
         jsr     bulkCopyToPpu
         .addr   type_b_lvl9_ending_nametable
         jmp     @startAnimation
 
 @checkPenguinOrOstrichEnding:
-        ldx     #GAME_TILESET
+        ldx     #CHR_GAME
         lda     levelNumber
         cmp     #$02    ; Penguin ending for level 2/12
         beq     @normalEnding
         cmp     #$06    ; Ostrich for 6/16
         beq     @normalEnding
-        ldx     #TYPEA_ENDING_TILESET
+        ldx     #CHR_TYPEA_ENDING
 @normalEnding:
         txa
         jsr     changeCHRBank0
-        lda     #TYPEA_ENDING_TILESET
+        lda     #CHR_TYPEA_ENDING
         jsr     changeCHRBank1
         jsr     bulkCopyToPpu
         .addr   type_b_ending_nametable
@@ -4099,7 +4099,7 @@ highScoreIndexToHighScoreScoresOffset:
         .byte   $00,$03,$06,$09,$0C,$0F,$12,$15
 highScoreEntryScreen:
         inc     initRam
-        lda     #MMC1_4K_CHR
+        lda     #MMC1_4KCHR_32KPRG_H_MIRROR
         jsr     setMMC1Control
         lda     #$09
         jsr     setMusicTrack
@@ -4107,9 +4107,9 @@ highScoreEntryScreen:
         sta     renderMode
         jsr     updateAudioWaitForNmiAndDisablePpuRendering
         jsr     disableNmi
-        lda     #TITLE_MENU_TILESET
+        lda     #CHR_TITLE_MENU
         jsr     changeCHRBank0
-        lda     #TITLE_MENU_TILESET
+        lda     #CHR_TITLE_MENU
         jsr     changeCHRBank1
         jsr     bulkCopyToPpu
         .addr   menu_palette
@@ -4934,9 +4934,9 @@ unreferenced_data6:
 endingAnimationA:
         jsr     updateAudioWaitForNmiAndDisablePpuRendering
         jsr     disableNmi
-        lda     #TYPEA_ENDING_TILESET
+        lda     #CHR_TYPEA_ENDING
         jsr     changeCHRBank0
-        lda     #TYPEA_ENDING_TILESET
+        lda     #CHR_TYPEA_ENDING
         jsr     changeCHRBank1
         jsr     bulkCopyToPpu
         .addr   type_a_ending_nametable
@@ -7391,13 +7391,13 @@ reset:  cld
         dex
         txs
         inc     reset
-        lda     #MMC1_4K_CHR
+        lda     #MMC1_4KCHR_32KPRG_H_MIRROR
         jsr     setMMC1Control
-        lda     #TITLE_MENU_TILESET
+        lda     #CHR_TITLE_MENU
         jsr     changeCHRBank0
-        lda     #TITLE_MENU_TILESET
+        lda     #CHR_TITLE_MENU
         jsr     changeCHRBank1
-        lda     #$00
+        lda     #PRG_32K_BANK
         jsr     changePRGBank
         jmp     initRam
 
