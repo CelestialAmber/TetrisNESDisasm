@@ -204,39 +204,9 @@ highScoreScoresA:= $0730
 highScoreScoresB:= $073C
 highScoreLevels := $0748
 initMagic       := $0750                        ; Initialized to a hard-coded number. When resetting, if not correct number then it knows this is a cold boot
-PPUCTRL         := $2000
-PPUMASK         := $2001
-PPUSTATUS       := $2002
-OAMADDR         := $2003
-OAMDATA         := $2004
-PPUSCROLL       := $2005
-PPUADDR         := $2006
-PPUDATA         := $2007
-SQ1_VOL         := $4000
-SQ1_SWEEP       := $4001
-SQ1_LO          := $4002
-SQ1_HI          := $4003
-SQ2_VOL         := $4004
-SQ2_SWEEP       := $4005
-SQ2_LO          := $4006
-SQ2_HI          := $4007
-TRI_LINEAR      := $4008
-TRI_LO          := $400A
-TRI_HI          := $400B
-NOISE_VOL       := $400C
-NOISE_LO        := $400E
-NOISE_HI        := $400F
-DMC_FREQ        := $4010
-DMC_RAW         := $4011
-DMC_START       := $4012                        ; start << 6 + $C000
-DMC_LEN         := $4013                        ; len << 4 + 1
-OAMDMA          := $4014
-SND_CHN         := $4015
-JOY1            := $4016
-JOY2_APUFC      := $4017                        ; read: bits 0-4 joy data lines (bit 0 being normal controller), bits 6-7 are FC inhibit and mode
 
-MMC1_CHR0       := $BFFF
-MMC1_CHR1       := $DFFF
+.include "constants.asm"
+
 
 .segment        "PRG_chunk1": absolute
 
@@ -266,7 +236,7 @@ nmi:    pha
         lda     #$00
         adc     frameCounter+1
         sta     frameCounter+1
-        ldx     #$17
+        ldx     #rng_seed
         ldy     #$02
         jsr     generateNextPseudorandomNumber
         lda     #$00
@@ -377,9 +347,9 @@ initRamContinued:
         jsr     LAA82
         lda     #$2C
         jsr     LAA82
-        lda     #$EF
-        ldx     #$04
-        ldy     #$05
+        lda     #EMPTY_TILE
+        ldx     #>playfield
+        ldy     #>playfieldForSecondPlayer
         jsr     memset_page
         jsr     waitForVBlankAndEnableNmi
         jsr     updateAudioWaitForNmiAndResetOamStaging
@@ -509,9 +479,9 @@ gameMode_legalScreen:
         sta     renderMode
         jsr     updateAudioWaitForNmiAndDisablePpuRendering
         jsr     disableNmi
-        lda     #$00
+        lda     #CHR_TITLE_MENU
         jsr     changeCHRBank0
-        lda     #$00
+        lda     #CHR_TITLE_MENU
         jsr     changeCHRBank1
         jsr     bulkCopyToPpu
         .addr   legal_screen_palette
@@ -522,16 +492,16 @@ gameMode_legalScreen:
         jsr     updateAudioWaitForNmiAndEnablePpuRendering
         jsr     updateAudioWaitForNmiAndResetOamStaging
         lda     #$00
-        ldx     #$02
-        ldy     #$02
+        ldx     #>oamStaging
+        ldy     #>oamStaging
         jsr     memset_page
-        lda     #$FF
+        lda     #LEGAL_SLEEP_TIME
         jsr     sleep_for_a_vblanks
-        lda     #$FF
+        lda     #LEGAL_SLEEP_TIME
         sta     generalCounter
 @waitForStartButton:
         lda     newlyPressedButtons_player1
-        cmp     #$10
+        cmp     #BUTTON_START
         beq     @continueToNextScreen
         jsr     updateAudioWaitForNmiAndResetOamStaging
         dec     generalCounter
@@ -548,9 +518,9 @@ gameMode_titleScreen:
         sta     displayNextPiece
         jsr     updateAudioWaitForNmiAndDisablePpuRendering
         jsr     disableNmi
-        lda     #$00
+        lda     #CHR_TITLE_MENU
         jsr     changeCHRBank0
-        lda     #$00
+        lda     #CHR_TITLE_MENU
         jsr     changeCHRBank1
         jsr     bulkCopyToPpu
         .addr   menu_palette
@@ -561,15 +531,15 @@ gameMode_titleScreen:
         jsr     updateAudioWaitForNmiAndEnablePpuRendering
         jsr     updateAudioWaitForNmiAndResetOamStaging
         lda     #$00
-        ldx     #$02
-        ldy     #$02
+        ldx     #>oamStaging
+        ldy     #>oamStaging
         jsr     memset_page
         lda     #$00
         sta     frameCounter+1
 @waitForStartButton:
         jsr     updateAudioWaitForNmiAndResetOamStaging
         lda     newlyPressedButtons_player1
-        cmp     #$10
+        cmp     #BUTTON_START
         beq     @startButtonPressed
         lda     frameCounter+1
         cmp     #$05
@@ -612,7 +582,7 @@ render_mode_legal_and_title_screens:
 
 gameMode_gameTypeMenu:
         inc     initRam
-        lda     #$10
+        lda     #MMC1_4KCHR_32KPRG_H_MIRROR
         jsr     setMMC1Control
         lda     #$01
         sta     renderMode
@@ -622,9 +592,9 @@ gameMode_gameTypeMenu:
         .addr   menu_palette
         jsr     bulkCopyToPpu
         .addr   game_type_menu_nametable
-        lda     #$00
+        lda     #CHR_TITLE_MENU
         jsr     changeCHRBank0
-        lda     #$00
+        lda     #CHR_TITLE_MENU
         jsr     changeCHRBank1
         jsr     waitForVBlankAndEnableNmi
         jsr     updateAudioWaitForNmiAndResetOamStaging
@@ -634,11 +604,11 @@ gameMode_gameTypeMenu:
         lda     musicSelectionTable,x
         jsr     setMusicTrack
 L830B:  lda     #$FF
-        ldx     #$02
-        ldy     #$02
+        ldx     #>oamStaging
+        ldy     #>oamStaging
         jsr     memset_page
         lda     newlyPressedButtons_player1
-        cmp     #$01
+        cmp     #BUTTON_RIGHT
         bne     @rightNotPressed
         lda     #$01
         sta     gameType
@@ -648,7 +618,7 @@ L830B:  lda     #$FF
 
 @rightNotPressed:
         lda     newlyPressedButtons_player1
-        cmp     #$02
+        cmp     #BUTTON_LEFT
         bne     @leftNotPressed
         lda     #$00
         sta     gameType
@@ -656,7 +626,7 @@ L830B:  lda     #$FF
         sta     soundEffectSlot1Init
 @leftNotPressed:
         lda     newlyPressedButtons_player1
-        cmp     #$04
+        cmp     #BUTTON_DOWN
         bne     @downNotPressed
         lda     #$01
         sta     soundEffectSlot1Init
@@ -669,7 +639,7 @@ L830B:  lda     #$FF
         jsr     setMusicTrack
 @downNotPressed:
         lda     newlyPressedButtons_player1
-        cmp     #$08
+        cmp     #BUTTON_UP
         bne     @upNotPressed
         lda     #$01
         sta     soundEffectSlot1Init
@@ -681,7 +651,7 @@ L830B:  lda     #$FF
         jsr     setMusicTrack
 @upNotPressed:
         lda     newlyPressedButtons_player1
-        cmp     #$10
+        cmp     #BUTTON_START
         bne     @startNotPressed
         lda     #$02
         sta     soundEffectSlot1Init
@@ -690,7 +660,7 @@ L830B:  lda     #$FF
 
 @startNotPressed:
         lda     newlyPressedButtons_player1
-        cmp     #$40
+        cmp     #BUTTON_B
         bne     @bNotPressed
         lda     #$02
         sta     soundEffectSlot1Init
@@ -718,7 +688,7 @@ L830B:  lda     #$FF
         lda     #$01
         sta     spriteIndexInOamContentLookup
         lda     frameCounter
-        and     #$03
+        and     #MENU_CURSOR_MASK
         bne     @flickerCursorPair1
         lda     #$02
         sta     spriteIndexInOamContentLookup
@@ -737,7 +707,7 @@ L830B:  lda     #$FF
         lda     #$67
         sta     spriteXOffset
         lda     frameCounter
-        and     #$03
+        and     #MENU_CURSOR_MASK
         bne     @flickerCursorPair2
         lda     #$02
         sta     spriteIndexInOamContentLookup
@@ -748,16 +718,16 @@ L830B:  lda     #$FF
 
 gameMode_levelMenu:
         inc     initRam
-        lda     #$10
+        lda     #MMC1_4KCHR_32KPRG_H_MIRROR
         jsr     setMMC1Control
         jsr     updateAudio2
         lda     #$01
         sta     renderMode
         jsr     updateAudioWaitForNmiAndDisablePpuRendering
         jsr     disableNmi
-        lda     #$00
+        lda     #CHR_TITLE_MENU
         jsr     changeCHRBank0
-        lda     #$00
+        lda     #CHR_TITLE_MENU
         jsr     changeCHRBank1
         jsr     bulkCopyToPpu
         .addr   menu_palette
@@ -808,10 +778,10 @@ gameMode_levelMenu_processPlayer1Navigation:
         lda     selectingLevelOrHeight
         sta     originalY
         lda     newlyPressedButtons_player1
-        cmp     #$10
+        cmp     #BUTTON_START
         bne     @checkBPressed
         lda     heldButtons_player1
-        cmp     #$90
+        cmp     #BUTTON_A+BUTTON_START
         bne     @startAndANotPressed
         lda     player1_startLevel
         clc
@@ -827,7 +797,7 @@ gameMode_levelMenu_processPlayer1Navigation:
 
 @checkBPressed:
         lda     newlyPressedButtons_player1
-        cmp     #$40
+        cmp     #BUTTON_B
         bne     @chooseRandomHole_player1
         lda     #$02
         sta     soundEffectSlot1Init
@@ -835,7 +805,7 @@ gameMode_levelMenu_processPlayer1Navigation:
         rts
 
 @chooseRandomHole_player1:
-        ldx     #$17
+        ldx     #rng_seed
         ldy     #$02
         jsr     generateNextPseudorandomNumber
         lda     rng_seed
@@ -844,7 +814,7 @@ gameMode_levelMenu_processPlayer1Navigation:
         bpl     @chooseRandomHole_player1
         sta     player1_garbageHole
 @chooseRandomHole_player2:
-        ldx     #$17
+        ldx     #rng_seed
         ldy     #$02
         jsr     generateNextPseudorandomNumber
         lda     rng_seed
@@ -858,7 +828,7 @@ gameMode_levelMenu_processPlayer1Navigation:
 ; Starts by checking if right pressed
 gameMode_levelMenu_handleLevelHeightNavigation:
         lda     newlyPressedButtons
-        cmp     #$01
+        cmp     #BUTTON_RIGHT
         bne     @checkLeftPressed
         lda     #$01
         sta     soundEffectSlot1Init
@@ -877,7 +847,7 @@ gameMode_levelMenu_handleLevelHeightNavigation:
         inc     startHeight
 @checkLeftPressed:
         lda     newlyPressedButtons
-        cmp     #$02
+        cmp     #BUTTON_LEFT
         bne     @checkDownPressed
         lda     #$01
         sta     soundEffectSlot1Init
@@ -894,7 +864,7 @@ gameMode_levelMenu_handleLevelHeightNavigation:
         dec     startHeight
 @checkDownPressed:
         lda     newlyPressedButtons
-        cmp     #$04
+        cmp     #BUTTON_DOWN
         bne     @checkUpPressed
         lda     #$01
         sta     soundEffectSlot1Init
@@ -917,7 +887,7 @@ gameMode_levelMenu_handleLevelHeightNavigation:
         inc     startHeight
 @checkUpPressed:
         lda     newlyPressedButtons
-        cmp     #$08
+        cmp     #BUTTON_UP
         bne     @checkAPressed
         lda     #$01
         sta     soundEffectSlot1Init
@@ -942,7 +912,7 @@ gameMode_levelMenu_handleLevelHeightNavigation:
         lda     gameType
         beq     @showSelection
         lda     newlyPressedButtons
-        cmp     #$80
+        cmp     #BUTTON_A
         bne     @showSelection
         lda     #$01
         sta     soundEffectSlot1Init
@@ -953,7 +923,7 @@ gameMode_levelMenu_handleLevelHeightNavigation:
         lda     selectingLevelOrHeight
         bne     @showSelectionLevel
         lda     frameCounter
-        and     #$03
+        and     #MENU_CURSOR_MASK
         beq     @skipShowingSelectionLevel
 @showSelectionLevel:
         ldx     startLevel
@@ -979,7 +949,7 @@ gameMode_levelMenu_handleLevelHeightNavigation:
         lda     selectingLevelOrHeight
         beq     @showSelectionHeight
         lda     frameCounter
-        and     #$03
+        and     #MENU_CURSOR_MASK
         beq     @ret
 @showSelectionHeight:
         ldx     startHeight
@@ -1028,9 +998,9 @@ render_mode_menu_screens:
 gameModeState_initGameBackground:
         jsr     updateAudioWaitForNmiAndDisablePpuRendering
         jsr     disableNmi
-        lda     #$03
+        lda     #CHR_GAME
         jsr     changeCHRBank0
-        lda     #$03
+        lda     #CHR_GAME
         jsr     changeCHRBank1
         jsr     bulkCopyToPpu
         .addr   game_palette
@@ -1119,15 +1089,15 @@ game_typeb_nametable_patch:
         .byte   $FE,$23,$57,$3D,$3E,$3E,$3E,$3E
         .byte   $3E,$3E,$3F,$FD
 gameModeState_initGameState:
-        lda     #$EF
-        ldx     #$04
-        ldy     #$04
+        lda     #EMPTY_TILE
+        ldx     #>playfield
+        ldy     #>playfield
         jsr     memset_page
         ldx     #$0F
         lda     #$00
 ; statsByType
 @initStatsByType:
-        sta     $03EF,x
+        sta     statsByType-1,x
         dex
         bne     @initStatsByType
         lda     #$05
@@ -1167,14 +1137,14 @@ gameModeState_initGameState:
         sta     demoButtonsAddr+1
         lda     #$03
         sta     renderMode
-        lda     #$A0
+        lda     #INITIAL_AUTOREPEAT_Y
         sta     player1_autorepeatY
         sta     player2_autorepeatY
         jsr     chooseNextTetrimino
         sta     player1_currentPiece
         sta     player2_currentPiece
         jsr     incrementPieceStat
-        ldx     #$17
+        ldx     #rng_seed
         ldy     #$02
         jsr     generateNextPseudorandomNumber
         jsr     chooseNextTetrimino
@@ -1186,7 +1156,7 @@ gameModeState_initGameState:
         sta     player1_lines
         sta     player2_lines
 @skipTypeBInit:
-        lda     #$47
+        lda     #RENDER_STATS+RENDER_SCORE+RENDER_LEVEL+RENDER_LINES
         sta     outOfDateRenderFlags
         jsr     updateAudioWaitForNmiAndResetOamStaging
         jsr     initPlayfieldIfTypeB
@@ -1200,7 +1170,7 @@ gameModeState_initGameState:
 makePlayer1Active:
         lda     #$01
         sta     activePlayer
-        lda     #$04
+        lda     #>playfield
         sta     playfieldAddr+1
         lda     newlyPressedButtons_player1
         sta     newlyPressedButtons
@@ -1219,7 +1189,7 @@ makePlayer1Active:
 makePlayer2Active:
         lda     #$02
         sta     activePlayer
-        lda     #$05
+        lda     #>playfieldForSecondPlayer
         sta     playfieldAddr+1
         lda     newlyPressedButtons_player2
         sta     newlyPressedButtons
@@ -1290,7 +1260,7 @@ typeBRows:
         sta     generalCounter3 ; column
 
 typeBGarbageInRow:
-        ldx     #$17
+        ldx     #rng_seed
         ldy     #$02
         jsr     generateNextPseudorandomNumber
         lda     rng_seed
@@ -1311,7 +1281,7 @@ typeBGarbageInRow:
         jmp     typeBGarbageInRow
 
 typeBGuaranteeBlank:
-        ldx     #$17
+        ldx     #rng_seed
         ldy     #$02
         jsr     generateNextPseudorandomNumber
         lda     rng_seed
@@ -1325,7 +1295,7 @@ typeBGuaranteeBlank:
         clc
         adc     generalCounter5
         tay
-        lda     #$EF
+        lda     #EMPTY_TILE
         sta     playfield,y
         jsr     updateAudioWaitForNmiAndResetOamStaging
         dec     generalCounter
@@ -1343,7 +1313,7 @@ copyPlayfieldToPlayer2:
         ldx     player1_startHeight
         lda     typeBBlankInitCountByHeightTable,x
         tay
-        lda     #$EF
+        lda     #EMPTY_TILE
 
 typeBBlankInitPlayer1:
         sta     playfield,y
@@ -1355,7 +1325,7 @@ typeBBlankInitPlayer1:
         ldx     player2_startHeight
         lda     typeBBlankInitCountByHeightTable,x
         tay
-        lda     #$EF
+        lda     #EMPTY_TILE
 typeBBlankInitPlayer2:
         sta     playfieldForSecondPlayer,y
         dey
@@ -1367,12 +1337,12 @@ endTypeBInit:
 typeBBlankInitCountByHeightTable:
         .byte   $C8,$AA,$96,$78,$64,$50
 rngTable:
-        .byte   $EF,$7B,$EF,$7C,$7D,$7D,$EF
-        .byte   $EF
+        .byte   EMPTY_TILE,$7B,EMPTY_TILE,$7C,$7D,$7D,EMPTY_TILE
+        .byte   EMPTY_TILE
 gameModeState_updateCountersAndNonPlayerState:
-        lda     #$03
+        lda     #CHR_GAME
         jsr     changeCHRBank0
-        lda     #$03
+        lda     #CHR_GAME
         jsr     changeCHRBank1
         lda     #$00
         sta     oamStagingLength
@@ -1383,7 +1353,7 @@ gameModeState_updateCountersAndNonPlayerState:
         inc     twoPlayerPieceDelayCounter
 @checkSelectButtonPressed:
         lda     newlyPressedButtons_player1
-        and     #$20
+        and     #BUTTON_SELECT
         beq     @ret
         lda     displayNextPiece
         eor     #$01
@@ -1399,8 +1369,8 @@ rotate_tetrimino:
         asl     a
         tax
         lda     newlyPressedButtons
-        and     #$80
-        cmp     #$80
+        and     #BUTTON_A
+        cmp     #BUTTON_A
         bne     @aNotPressed
         inx
         lda     rotationTable,x
@@ -1413,8 +1383,8 @@ rotate_tetrimino:
 
 @aNotPressed:
         lda     newlyPressedButtons
-        and     #$40
-        cmp     #$40
+        and     #BUTTON_B
+        cmp     #BUTTON_B
         bne     @ret
         lda     rotationTable,x
         sta     currentPiece
@@ -1439,7 +1409,7 @@ drop_tetrimino:
         lda     autorepeatY
         bpl     @notBeginningOfGame
         lda     newlyPressedButtons
-        and     #$04
+        and     #BUTTON_DOWN
         beq     @incrementAutorepeatY
         lda     #$00
         sta     autorepeatY
@@ -1447,11 +1417,11 @@ drop_tetrimino:
         bne     @autorepeating
 @playing:
         lda     heldButtons
-        and     #$03
+        and     #BUTTON_LEFT+BUTTON_RIGHT
         bne     @lookupDropSpeed
         lda     newlyPressedButtons
-        and     #$0F
-        cmp     #$04
+        and     #BUTTON_DPAD
+        cmp     #BUTTON_DOWN
         bne     @lookupDropSpeed
         lda     #$01
         sta     autorepeatY
@@ -1459,8 +1429,8 @@ drop_tetrimino:
 
 @autorepeating:
         lda     heldButtons
-        and     #$0F
-        cmp     #$04
+        and     #BUTTON_DPAD
+        cmp     #BUTTON_DOWN
         beq     @downPressed
         lda     #$00
         sta     autorepeatY
@@ -1507,29 +1477,37 @@ drop_tetrimino:
         jmp     @ret
 
 framesPerDropTable:
-        .byte   $30,$2B,$26,$21,$1C,$17,$12,$0D
-        .byte   $08,$06,$05,$05,$05,$04,$04,$04
-        .byte   $03,$03,$03,$02,$02,$02,$02,$02
-        .byte   $02,$02,$02,$02,$02,$01
+.if PAL = 1
+    .byte   $24,$20,$1D,$19,$16,$12,$0F,$0B
+    .byte   $07,$05,$04,$04,$04,$03,$03,$03
+    .byte   $02,$02,$02,$01,$01,$01,$01,$01
+    .byte   $01,$01,$01,$01,$01,$01
+.else
+    .byte   $30,$2B,$26,$21,$1C,$17,$12,$0D
+    .byte   $08,$06,$05,$05,$05,$04,$04,$04
+    .byte   $03,$03,$03,$02,$02,$02,$02,$02
+    .byte   $02,$02,$02,$02,$02,$01
+.endif
+
 unreferenced_framesPerDropTable:
         .byte   $01,$01
 shift_tetrimino:
         lda     tetriminoX
         sta     originalY
         lda     heldButtons
-        and     #$04
+        and     #BUTTON_DOWN
         bne     @ret
         lda     newlyPressedButtons
-        and     #$03
+        and     #BUTTON_LEFT+BUTTON_RIGHT
         bne     @resetAutorepeatX
         lda     heldButtons
-        and     #$03
+        and     #BUTTON_LEFT+BUTTON_RIGHT
         beq     @ret
         inc     autorepeatX
         lda     autorepeatX
-        cmp     #$10
+        cmp     #DAS_RESET
         bmi     @ret
-        lda     #$0A
+        lda     #DAS_DELAY
         sta     autorepeatX
         jmp     @buttonHeldDown
 
@@ -1538,7 +1516,7 @@ shift_tetrimino:
         sta     autorepeatX
 @buttonHeldDown:
         lda     heldButtons
-        and     #$01
+        and     #BUTTON_RIGHT
         beq     @notPressingRight
         inc     tetriminoX
         jsr     isPositionValid
@@ -1549,7 +1527,7 @@ shift_tetrimino:
 
 @notPressingRight:
         lda     heldButtons
-        and     #$02
+        and     #BUTTON_LEFT
         beq     @ret
         dec     tetriminoX
         jsr     isPositionValid
@@ -1561,7 +1539,7 @@ shift_tetrimino:
 @restoreX:
         lda     originalY
         sta     tetriminoX
-        lda     #$10
+        lda     #DAS_RESET
         sta     autorepeatX
 @ret:   rts
 
@@ -2334,7 +2312,7 @@ isPositionValid:
         adc     selectingLevelOrHeight
         tay
         lda     (playfieldAddr),y
-        cmp     #$EF
+        cmp     #EMPTY_TILE
         bcc     @invalid
         lda     orientationTable,x
         clc
@@ -2357,7 +2335,7 @@ render_mode_play_and_demo:
         lda     player1_playState
         cmp     #$04
         bne     @playStateNotDisplayLineClearingAnimation
-        lda     #$04
+        lda     #>playfield
         sta     playfieldAddr+1
         lda     player1_rowY
         sta     rowY
@@ -2383,7 +2361,7 @@ render_mode_play_and_demo:
 @playStateNotDisplayLineClearingAnimation:
         lda     player1_vramRow
         sta     vramRow
-        lda     #$04
+        lda     #>playfield
         sta     playfieldAddr+1
         jsr     copyPlayfieldRowToVRAM
         jsr     copyPlayfieldRowToVRAM
@@ -2398,7 +2376,7 @@ render_mode_play_and_demo:
         lda     player2_playState
         cmp     #$04
         bne     @player2PlayStateNotDisplayLineClearingAnimation
-        lda     #$05
+        lda     #>playfieldForSecondPlayer
         sta     playfieldAddr+1
         lda     player2_rowY
         sta     rowY
@@ -2424,7 +2402,7 @@ render_mode_play_and_demo:
 @player2PlayStateNotDisplayLineClearingAnimation:
         lda     player2_vramRow
         sta     vramRow
-        lda     #$05
+        lda     #>playfieldForSecondPlayer
         sta     playfieldAddr+1
         jsr     copyPlayfieldRowToVRAM
         jsr     copyPlayfieldRowToVRAM
@@ -2434,7 +2412,7 @@ render_mode_play_and_demo:
         sta     player2_vramRow
 @renderLines:
         lda     outOfDateRenderFlags
-        and     #$01
+        and     #RENDER_LINES
         beq     @renderLevel
         lda     numberOfPlayers
         cmp     #$02
@@ -2448,7 +2426,7 @@ render_mode_play_and_demo:
         lda     player1_lines
         jsr     twoDigsToPPU
         lda     outOfDateRenderFlags
-        and     #$FE
+        and     #$FF^RENDER_LINES
         sta     outOfDateRenderFlags
         jmp     @renderLevel
 
@@ -2470,11 +2448,11 @@ render_mode_play_and_demo:
         lda     player2_lines
         jsr     twoDigsToPPU
         lda     outOfDateRenderFlags
-        and     #$FE
+        and     #$FF^RENDER_LINES
         sta     outOfDateRenderFlags
 @renderLevel:
         lda     outOfDateRenderFlags
-        and     #$02
+        and     #RENDER_LEVEL
         beq     @renderScore
         lda     numberOfPlayers
         cmp     #$02
@@ -2490,14 +2468,14 @@ render_mode_play_and_demo:
         jsr     twoDigsToPPU
         jsr     updatePaletteForLevel
         lda     outOfDateRenderFlags
-        and     #$FD
+        and     #$FF^RENDER_LEVEL
         sta     outOfDateRenderFlags
 @renderScore:
         lda     numberOfPlayers
         cmp     #$02
         beq     @renderStats
         lda     outOfDateRenderFlags
-        and     #$04
+        and     #RENDER_SCORE
         beq     @renderStats
         lda     #$21
         sta     PPUADDR
@@ -2510,14 +2488,14 @@ render_mode_play_and_demo:
         lda     player1_score
         jsr     twoDigsToPPU
         lda     outOfDateRenderFlags
-        and     #$FB
+        and     #$FF^RENDER_SCORE
         sta     outOfDateRenderFlags
 @renderStats:
         lda     numberOfPlayers
         cmp     #$02
         beq     @renderTetrisFlashAndSound
         lda     outOfDateRenderFlags
-        and     #$40
+        and     #RENDER_STATS
         beq     @renderTetrisFlashAndSound
         lda     #$00
         sta     tmpCurrentPiece
@@ -2538,7 +2516,7 @@ render_mode_play_and_demo:
         cmp     #$07
         bne     @renderPieceStat
         lda     outOfDateRenderFlags
-        and     #$BF
+        and     #$FF^RENDER_STATS
         sta     outOfDateRenderFlags
 @renderTetrisFlashAndSound:
         lda     #$3F
@@ -2678,7 +2656,7 @@ updateLineClearingAnimation:
 
 @twoPlayers:
         lda     playfieldAddr+1
-        cmp     #$04
+        cmp     #>playfield
         bne     @player2
         lda     generalCounter
         sec
@@ -2877,7 +2855,7 @@ pickRandomTetrimino:
         cmp     spawnID
         bne     useNewSpawnID
 @invalidIndex:
-        ldx     #$17
+        ldx     #rng_seed
         ldy     #$02
         jsr     generateNextPseudorandomNumber
         lda     rng_seed
@@ -2935,7 +2913,7 @@ incrementPieceStat:
 L9996:  lda     generalCounter
         sta     statsByType,x
         lda     outOfDateRenderFlags
-        ora     #$40
+        ora     #RENDER_STATS
         sta     outOfDateRenderFlags
         rts
 
@@ -3046,14 +3024,14 @@ playState_updateGameOverCurtain:
         lda     player1_score+2
         cmp     #$03
         bcc     @checkForStartButton
-        lda     #$80
+        lda     #ENDING_SLEEP_TIME_1
         jsr     sleep_for_a_vblanks
         jsr     endingAnimation
         jmp     @exitGame
 
 @checkForStartButton:
         lda     newlyPressedButtons_player1
-        cmp     #$10
+        cmp     #BUTTON_START
         bne     @ret2
 @exitGame:
         lda     #$00
@@ -3088,7 +3066,7 @@ playState_checkForCompletedRows:
         ldx     #$0A
 @checkIfRowComplete:
         lda     (playfieldAddr),y
-        cmp     #$EF
+        cmp     #EMPTY_TILE
         beq     @rowNotComplete
         iny
         dex
@@ -3111,7 +3089,7 @@ playState_checkForCompletedRows:
         dey
         cpy     #$FF
         bne     @movePlayfieldDownOneRow
-        lda     #$EF
+        lda     #EMPTY_TILE
         ldy     #$00
 @clearRowTopRow:
         sta     (playfieldAddr),y
@@ -3224,7 +3202,7 @@ playState_updateLinesAndStatistics:
         sta     lineClearStatsByType,x
 @noCarry:
         lda     outOfDateRenderFlags
-        ora     #$01
+        ora     #RENDER_LINES
         sta     outOfDateRenderFlags
         lda     gameType
         beq     @gameTypeA
@@ -3292,7 +3270,7 @@ L9BD0:  lda     lines+1
         lda     #$06
         sta     soundEffectSlot1Init
         lda     outOfDateRenderFlags
-        ora     #$02
+        ora     #RENDER_LEVEL
         sta     outOfDateRenderFlags
 L9BFB:  dex
         bne     incrementLines
@@ -3320,7 +3298,7 @@ L9C18:  lda     score
         sta     score
         inc     score+1
 L9C27:  lda     outOfDateRenderFlags
-        ora     #$04
+        ora     #RENDER_SCORE
         sta     outOfDateRenderFlags
 addLineClearPoints:
         lda     #$00
@@ -3381,7 +3359,7 @@ L9C84:  lda     score+2
 L9C94:  dec     generalCounter
         bne     L9C37
         lda     outOfDateRenderFlags
-        ora     #$04
+        ora     #RENDER_SCORE
         sta     outOfDateRenderFlags
         lda     #$00
         sta     completedLines
@@ -3437,9 +3415,9 @@ gameModeState_handleGameOver:
         lda     #$01
         sta     player1_playState
         sta     player2_playState
-        lda     #$EF
-        ldx     #$04
-        ldy     #$05
+        lda     #EMPTY_TILE
+        ldx     #>playfield
+        ldy     #>playfieldForSecondPlayer
         jsr     memset_page
         lda     #$00
         sta     player1_vramRow
@@ -3462,7 +3440,7 @@ updateMusicSpeed:
         ldx     #$0A
 @checkForBlockInRow:
         lda     (playfieldAddr),y
-        cmp     #$EF
+        cmp     #EMPTY_TILE
         bne     @foundBlockInRow
         iny
         dex
@@ -3502,7 +3480,7 @@ pollControllerButtons:
         beq     @recording
         jsr     pollController
         lda     newlyPressedButtons_player1
-        cmp     #$10
+        cmp     #BUTTON_START
         beq     @startButtonPressed
         lda     demo_repeats
         beq     @finishedMove
@@ -3548,6 +3526,11 @@ pollControllerButtons:
 
 @recording:
         jsr     pollController
+.if PAL = 1
+        lda     heldButtons_player1
+        and     #$DF
+        sta     heldButtons_player1
+.endif
         lda     gameMode
         cmp     #$05
         bne     @ret2
@@ -3612,7 +3595,7 @@ setMusicTrack:
 ; A+B+Select+Start
 gameModeState_checkForResetKeyCombo:
         lda     heldButtons_player1
-        cmp     #$F0
+        cmp     #BUTTON_A+BUTTON_B+BUTTON_SELECT+BUTTON_START
         beq     @reset
         inc     gameModeState
         rts
@@ -3681,26 +3664,26 @@ endingAnimationB:
         cmp     #$09
         bne     @checkPenguinOrOstrichEnding
         ; castle ending for level 9/19
-        lda     #$01
+        lda     #CHR_TYPEB_ENDING
         jsr     changeCHRBank0
-        lda     #$01
+        lda     #CHR_TYPEB_ENDING
         jsr     changeCHRBank1
         jsr     bulkCopyToPpu
         .addr   type_b_lvl9_ending_nametable
         jmp     @startAnimation
 
 @checkPenguinOrOstrichEnding:
-        ldx     #$03    ; game_tileset for penguin/ostrich sprites
+        ldx     #CHR_GAME
         lda     levelNumber
         cmp     #$02    ; Penguin ending for level 2/12
         beq     @normalEnding
         cmp     #$06    ; Ostrich for 6/16
         beq     @normalEnding
-        ldx     #$02    ; typeB_ending_tileset
+        ldx     #CHR_TYPEA_ENDING
 @normalEnding:
         txa
         jsr     changeCHRBank0
-        lda     #$02
+        lda     #CHR_TYPEA_ENDING
         jsr     changeCHRBank1
         jsr     bulkCopyToPpu
         .addr   type_b_ending_nametable
@@ -3716,7 +3699,7 @@ endingAnimationB:
         sta     renderMode
         lda     #$0A
         jsr     setMusicTrack
-        lda     #$80
+        lda     #ENDING_SLEEP_TIME_1
         jsr     render_endingUnskippable
         lda     player1_score
         sta     totalScore
@@ -3730,7 +3713,7 @@ endingAnimationB:
         sta     player1_score
         sta     player1_score+1
         sta     player1_score+2
-        lda     #$40
+        lda     #ENDING_SLEEP_TIME_2
         jsr     render_endingUnskippable
         lda     bTypeLevelBonus
         beq     @checkForHeightBonus
@@ -3749,11 +3732,11 @@ endingAnimationB:
         jsr     add100Points
         lda     #$01
         sta     soundEffectSlot1Init
-        lda     #$02
+        lda     #ENDING_SLEEP_TIME_3
         jsr     render_endingUnskippable
         lda     bTypeLevelBonus
         bne     @addLevelBonus
-        lda     #$40
+        lda     #ENDING_SLEEP_TIME_2
         jsr     render_endingUnskippable
 @checkForHeightBonus:
         lda     bTypeHeightBonus
@@ -3773,19 +3756,19 @@ endingAnimationB:
         jsr     add100Points
         lda     #$01
         sta     soundEffectSlot1Init
-        lda     #$02
+        lda     #ENDING_SLEEP_TIME_3
         jsr     render_endingUnskippable
         lda     bTypeHeightBonus
         bne     @addHeightBonus
         lda     #$02
         sta     soundEffectSlot1Init
-        lda     #$40
+        lda     #ENDING_SLEEP_TIME_2
         jsr     render_endingUnskippable
 @startNotPressed:
         jsr     render_ending
         jsr     updateAudioWaitForNmiAndResetOamStaging
         lda     newlyPressedButtons_player1
-        cmp     #$10
+        cmp     #BUTTON_START
         bne     @startNotPressed
         lda     player1_levelNumber
         sta     levelNumber
@@ -3874,8 +3857,7 @@ showHighScores:
         jmp     showHighScores_ret
 
 showHighScores_real:
-        jsr     bulkCopyToPpu      ;not using @-label due to MMC1_Control in PAL
-MMC1_Control    := * + 1
+        jsr     bulkCopyToPpu
         .addr   high_scores_nametable
         lda     #$00
         sta     generalCounter2
@@ -4131,7 +4113,7 @@ highScoreIndexToHighScoreScoresOffset:
         .byte   $00,$03,$06,$09,$0C,$0F,$12,$15
 highScoreEntryScreen:
         inc     initRam
-        lda     #$10
+        lda     #MMC1_4KCHR_32KPRG_H_MIRROR
         jsr     setMMC1Control
         lda     #$09
         jsr     setMusicTrack
@@ -4139,9 +4121,9 @@ highScoreEntryScreen:
         sta     renderMode
         jsr     updateAudioWaitForNmiAndDisablePpuRendering
         jsr     disableNmi
-        lda     #$00
+        lda     #CHR_TITLE_MENU
         jsr     changeCHRBank0
-        lda     #$00
+        lda     #CHR_TITLE_MENU
         jsr     changeCHRBank1
         jsr     bulkCopyToPpu
         .addr   menu_palette
@@ -4186,14 +4168,14 @@ highScoreEntryScreen:
         lda     #$0E
         sta     spriteIndexInOamContentLookup
         lda     frameCounter
-        and     #$03
+        and     #MENU_CURSOR_MASK
         bne     @flickerStateSelected_checkForStartPressed
         lda     #$02
         sta     spriteIndexInOamContentLookup
 @flickerStateSelected_checkForStartPressed:
         jsr     loadSpriteIntoOamStaging
         lda     newlyPressedButtons_player1
-        and     #$10
+        and     #BUTTON_START
         beq     @checkForAOrRightPressed
         lda     #$02
         sta     soundEffectSlot1Init
@@ -4201,7 +4183,7 @@ highScoreEntryScreen:
 
 @checkForAOrRightPressed:
         lda     newlyPressedButtons_player1
-        and     #$81
+        and     #BUTTON_A+BUTTON_RIGHT
         beq     @checkForBOrLeftPressed
         lda     #$01
         sta     soundEffectSlot1Init
@@ -4213,7 +4195,7 @@ highScoreEntryScreen:
         sta     highScoreEntryNameOffsetForLetter
 @checkForBOrLeftPressed:
         lda     newlyPressedButtons_player1
-        and     #$42
+        and     #BUTTON_B+BUTTON_LEFT
         beq     @checkForDownPressed
         lda     #$01
         sta     soundEffectSlot1Init
@@ -4224,7 +4206,7 @@ highScoreEntryScreen:
         sta     highScoreEntryNameOffsetForLetter
 @checkForDownPressed:
         lda     heldButtons_player1
-        and     #$04
+        and     #BUTTON_DOWN
         beq     @checkForUpPressed
         lda     frameCounter
         and     #$07
@@ -4249,7 +4231,7 @@ highScoreEntryScreen:
         sta     highScoreNames,x
 @checkForUpPressed:
         lda     heldButtons_player1
-        and     #$08
+        and     #BUTTON_UP
         beq     @waitForVBlank
         lda     frameCounter
         and     #$07
@@ -4280,7 +4262,7 @@ highScoreEntryScreen:
         tax
         lda     highScoreNames,x
         sta     highScoreEntryCurrentLetter
-        lda     #$80
+        lda     #RENDER_HIGH_SCORE_LETTER
         sta     outOfDateRenderFlags
         jsr     updateAudioWaitForNmiAndResetOamStaging
         jmp     @renderFrame
@@ -4294,7 +4276,7 @@ highScoreNamePosToX:
         .byte   $48,$50,$58,$60,$68,$70
 render_mode_congratulations_screen:
         lda     outOfDateRenderFlags
-        and     #$80
+        and     #RENDER_HIGH_SCORE_LETTER
         beq     @ret
         lda     highScoreEntryRawPos
         and     #$03
@@ -4329,7 +4311,7 @@ gameModeState_startButtonHandling:
         cmp     #$05
         bne     @checkIfInGame
         lda     newlyPressedButtons_player1
-        cmp     #$10
+        cmp     #BUTTON_START
         bne     @checkIfInGame
         lda     #$01
         sta     gameMode
@@ -4340,7 +4322,7 @@ gameModeState_startButtonHandling:
         cmp     #$03
         bne     @ret
         lda     newlyPressedButtons_player1
-        and     #$10
+        and     #BUTTON_START
         bne     @startPressed
         jmp     @ret
 
@@ -4359,8 +4341,8 @@ gameModeState_startButtonHandling:
         lda     #$16
         sta     PPUMASK
         lda     #$FF
-        ldx     #$02
-        ldy     #$02
+        ldx     #>oamStaging
+        ldy     #>oamStaging
         jsr     memset_page
 @pauseLoop:
         lda     #$70
@@ -4371,7 +4353,7 @@ gameModeState_startButtonHandling:
         sta     spriteIndexInOamContentLookup
         jsr     loadSpriteIntoOamStaging
         lda     newlyPressedButtons_player1
-        cmp     #$10
+        cmp     #BUTTON_START
         beq     @resume
         jsr     updateAudioWaitForNmiAndResetOamStaging
         jmp     @pauseLoop
@@ -4388,9 +4370,17 @@ gameModeState_startButtonHandling:
 
 playState_bTypeGoalCheck:
         lda     gameType
-        beq     @ret
+.if PAL = 1
+        beq     checkSelectHeldToAddPoints
+        lda     heldButtons_player1
+        and     #$20
+        bne     @gameOver
+.else
+        beq     playState_bTypeGoalCheck_ret
+.endif
         lda     lines
-        bne     @ret
+        bne     playState_bTypeGoalCheck_ret
+@gameOver:
         lda     #$02
         jsr     setMusicTrack
         ldy     #$46
@@ -4418,7 +4408,8 @@ playState_bTypeGoalCheck:
         inc     gameModeState
         rts
 
-@ret:   inc     playState
+playState_bTypeGoalCheck_ret:
+        inc     playState
         rts
 
 typebSuccessGraphic:
@@ -4440,6 +4431,20 @@ sleep_for_a_vblanks:
         lda     sleepCounter
         bne     @loop
         rts
+
+.if PAL = 1
+checkSelectHeldToAddPoints:
+        lda     heldButtons_player1
+        and     #$20
+        beq     playState_bTypeGoalCheck_ret
+        inc     score+2
+        inc     player1_score+2
+        lda     outOfDateRenderFlags
+        ora     #$04
+        sta     outOfDateRenderFlags
+        jmp     playState_bTypeGoalCheck_ret
+.endif
+
 
 ending_initTypeBVars:
         lda     #$00
@@ -4493,9 +4498,9 @@ ending_typeBConcertPatchToPpuForHeight:
         .addr   @height4
         .addr   @height5
 @heightUnused:
-        lda     #$A8
+        lda     #>ending_patchToPpu_typeBConcertHeightUnused
         sta     patchToPpuAddr+1
-        lda     #$22
+        lda     #<ending_patchToPpu_typeBConcertHeightUnused
         sta     patchToPpuAddr
         jsr     patchToPpu
 @height0:
@@ -4582,8 +4587,12 @@ ending_typeBConcert:
         lda     #$47
         sta     spriteYOffset
         lda     frameCounter
+.if PAL = 1
+        and     #$04
+.else
         and     #$08
         lsr     a
+.endif
         lsr     a
         lsr     a
         clc
@@ -4635,8 +4644,12 @@ ending_typeBConcert:
         lda     #$A7
         sta     spriteYOffset
         lda     frameCounter
+.if PAL = 1
+        and     #$08
+.else
         and     #$10
         lsr     a
+.endif
         lsr     a
         lsr     a
         lsr     a
@@ -4664,8 +4677,12 @@ ending_typeBConcert:
         lda     #$D7
         sta     spriteYOffset
         lda     frameCounter
+.if PAL = 1
+        and     #$08
+.else
         and     #$10
         lsr     a
+.endif
         lsr     a
         lsr     a
         lsr     a
@@ -4678,8 +4695,12 @@ ending_typeBConcert:
         lda     #$D7
         sta     spriteYOffset
         lda     frameCounter
+.if PAL = 1
+        and     #$08
+.else
         and     #$10
         lsr     a
+.endif
         lsr     a
         lsr     a
         lsr     a
@@ -4693,8 +4714,12 @@ ending_typeBConcert:
         lda     #$77
         sta     spriteYOffset
         lda     frameCounter
+.if PAL = 1
+        and     #$08
+.else
         and     #$10
         lsr     a
+.endif
         lsr     a
         lsr     a
         lsr     a
@@ -4966,9 +4991,9 @@ unreferenced_data6:
 endingAnimationA:
         jsr     updateAudioWaitForNmiAndDisablePpuRendering
         jsr     disableNmi
-        lda     #$02
+        lda     #CHR_TYPEA_ENDING
         jsr     changeCHRBank0
-        lda     #$02
+        lda     #CHR_TYPEA_ENDING
         jsr     changeCHRBank1
         jsr     bulkCopyToPpu
         .addr   type_a_ending_nametable
@@ -4983,7 +5008,7 @@ endingAnimationA:
         sta     renderMode
         lda     #$0A
         jsr     setMusicTrack
-        lda     #$80
+        lda     #ENDING_SLEEP_TIME_1
         jsr     render_endingUnskippable
 @endingSleep:
         jsr     render_ending
@@ -4991,7 +5016,7 @@ endingAnimationA:
         lda     ending_customVars
         bne     @endingSleep
         lda     newlyPressedButtons_player1
-        cmp     #$10
+        cmp     #BUTTON_START
         bne     @endingSleep
         rts
 
@@ -5102,8 +5127,8 @@ updateAudioWaitForNmiAndResetOamStaging:
         lda     verticalBlankingInterval
         beq     @checkForNmi
         lda     #$FF
-        ldx     #$02
-        ldy     #$02
+        ldx     #>oamStaging
+        ldy     #>oamStaging
         jsr     memset_page
         rts
 
@@ -5615,7 +5640,11 @@ type_a_ending_nametable:
 .segment        "unreferenced_data1": absolute
 
 unreferenced_data1:
+.if PAL = 1
+        .incbin "data/unreferenced_data1_pal.bin"
+.else
         .incbin "data/unreferenced_data1.bin"
+.endif
 
 ; End of "unreferenced_data1" segment
 .code
@@ -6192,7 +6221,7 @@ soundEffectSlot1_rotateTetriminoPlaying:
         jmp     copyToSq1Channel
 
 soundEffectSlot1_tetrisAchievedInit:
-        lda     #$05
+        lda     #SFX_TETRIS_INIT
         ldy     #<soundEffectSlot1_tetrisAchievedInitData
         jsr     LE417
         lda     #$10
@@ -6205,7 +6234,7 @@ soundEffectSlot1_tetrisAchievedPlaying:
 LE417:  jmp     initSoundEffectShared
 
 soundEffectSlot1_lineCompletedInit:
-        lda     #$05
+        lda     #SFX_LINE_COMPLETE_INIT
         ldy     #<soundEffectSlot1_lineCompletedInitData
         jsr     LE417
         lda     #$08
@@ -6216,7 +6245,7 @@ soundEffectSlot1_lineCompletedPlaying:
         ldy     #<soundEffectSlot1_lineCompletedInitData
         bne     LE442
 soundEffectSlot1_lineClearingInit:
-        lda     #$04
+        lda     #SFX_LINECLEAR_INIT
         ldy     #<soundEffectSlot1_lineClearingInitData
         jsr     LE417
         lda     #$00
@@ -6303,7 +6332,7 @@ soundEffectSlot1_levelUpPlaying:
 LE4E9:  jmp     soundEffectSlot1Playing_stop
 
 soundEffectSlot1_levelUpInit:
-        lda     #$06
+        lda     #SFX_LEVELUP_INIT
         ldy     #<soundEffectSlot1_levelUpInitData
         jmp     initSoundEffectShared
 
@@ -7162,8 +7191,19 @@ noteToWaveTable:
         ; $98: Ab8, Db8
         .dbyt   $0010,$0019
 
-; 1/16  note, 1/8 note, 1/4 note, 1/2 note, full note, 3/8 note, 3/4 note, 3/16 note
 noteDurationTable:
+.if PAL = 1
+        .byte   $02,$05,$0A,$14,$28,$0F,$1E,$03
+        .byte   $02,$04,$08,$10,$20,$0C,$18,$06
+        .byte   $05,$02,$01,$01,$03,$06,$0C,$18
+        .byte   $30,$12,$24,$09,$08,$04,$02,$01
+        .byte   $04,$08,$10,$20,$40,$18,$30,$0C
+        .byte   $0A,$05,$02,$01,$05,$0A,$14,$28
+        .byte   $50,$1E,$3C,$0F,$0D,$06,$02,$01
+        .byte   $06,$0C,$18,$30,$60,$24,$48,$12
+        .byte   $10,$08,$03,$01,$04,$02,$00,$90
+.else
+; 1/16  note, 1/8 note, 1/4 note, 1/2 note, full note, 3/8 note, 3/4 note, 3/16 note
         ; 300 bpm
         .byte   $03,$06,$0C,$18,$30,$12,$24,$09
         .byte   $08,$04,$02,$01
@@ -7191,6 +7231,7 @@ noteDurationTable:
         ; 82 bpm
         .byte   $0B,$16,$2C,$58,$B0,$42,$84,$21
         .byte   $1D,$0E,$05,$01,$02,$17
+.endif
 musicDataTableIndex:
         .byte   $00,$0A,$14,$1E,$28,$32,$3C,$46
         .byte   $50,$5A
@@ -7201,7 +7242,11 @@ musicDataTableIndex:
 ; Second byte controls tempo, indexing into noteDurationTable
 ; Each table entry is written into musicDataNoteTableOffset
 musicDataTable:
+.if PAL = 1
+        .byte   $0A,$2C
+.else
         .byte   $0A,$24
+.endif
         .addr   music_titleScreen_sq1Script
         .addr   music_titleScreen_sq2Script
         .addr   music_titleScreen_triScript
@@ -7211,42 +7256,74 @@ musicDataTable:
         .addr   music_bTypeGoalAchieved_sq2Script
         .addr   music_bTypeGoalAchieved_triScript
         .addr   music_bTypeGoalAchieved_noiseScript
+.if PAL = 1
+        .byte   $81,$2C
+.else
         .byte   $81,$24
+.endif
         .addr   music_music1_sq1Script
         .addr   music_music1_sq2Script
         .addr   music_music1_triScript
         .addr   music_music1_noiseScript
+.if PAL = 1
+        .byte   $83,$2C
+.else
         .byte   $83,$24
+.endif
         .addr   music_music2_sq1Script
         .addr   music_music2_sq2Script
         .addr   music_music2_triScript
         .addr   music_music2_noiseScript
+.if PAL = 1
+        .byte   $81,$2C
+.else
         .byte   $81,$24
+.endif
         .addr   music_music3_sq1Script
         .addr   music_music3_sq2Script
         .addr   music_music3_triScript
         .addr   LFFFF
+.if PAL = 1
+        .byte   $81,$08
+.else
         .byte   $81,$00
+.endif
         .addr   music_music1_sq1Script
         .addr   music_music1_sq2Script
         .addr   music_music1_triScript
         .addr   music_music1_noiseScript
+.if PAL = 1
+        .byte   $83,$14
+.else
         .byte   $83,$0C
+.endif
         .addr   music_music2_sq1Script
         .addr   music_music2_sq2Script
         .addr   music_music2_triScript
         .addr   music_music2_noiseScript
+.if PAL = 1
+        .byte   $81,$14
+.else
         .byte   $81,$0C
+.endif
         .addr   music_music3_sq1Script
         .addr   music_music3_sq2Script
         .addr   music_music3_triScript
         .addr   LFFFF
+.if PAL = 1
+        .byte   $00,$20
+.else
         .byte   $00,$18
+.endif
         .addr   music_congratulations_sq1Script
         .addr   music_congratulations_sq2Script
         .addr   music_congratulations_triScript
         .addr   music_congratulations_noiseScript
+.if PAL = 1
+        .byte   $8F,$2C
+.else
         .byte   $8F,$24
+.endif
         .addr   music_endings_sq1Script
         .addr   music_endings_sq2Script
         .addr   music_endings_triScript
@@ -7423,18 +7500,19 @@ reset:  cld
         dex
         txs
         inc     reset
-        lda     #$10
+        lda     #MMC1_4KCHR_32KPRG_H_MIRROR
         jsr     setMMC1Control
-        lda     #$00
+        lda     #CHR_TITLE_MENU
         jsr     changeCHRBank0
-        lda     #$00
+        lda     #CHR_TITLE_MENU
         jsr     changeCHRBank1
-        lda     #$00
+        lda     #PRG_32K_BANK
         jsr     changePRGBank
         jmp     initRam
 
 .include "data/unreferenced_data5.asm"
-MMC1_PRG:
+
+; Unreferenced.  Label previously used as MMC1_PRG
         .byte   $00,$00,$00,$00,$00,$00,$00,$00
         .byte   $00
         .byte   $00
@@ -7447,7 +7525,6 @@ MMC1_PRG:
 
         .addr   nmi
         .addr   reset
-LFFFF           := * + 1
         .addr   irq
 
 ; End of "VECTORS" segment
