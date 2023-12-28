@@ -7511,7 +7511,8 @@ reset:  cld
         jmp     initRam
 
 .include "data/unreferenced_data5.asm"
-MMC1_PRG:
+
+; Unreferenced.  Label previously used as MMC1_PRG
         .byte   $00,$00,$00,$00,$00,$00,$00,$00
         .byte   $00
         .byte   $00

@@ -32,6 +32,7 @@ JOY2_APUFC      := $4017                        ; read: bits 0-4 joy data lines 
 MMC1_Control    := $9FFF
 MMC1_CHR0       := $BFFF
 MMC1_CHR1       := $DFFF
+MMC1_PRG        := $FFF0
 
 LFFFF := $FFFF
 
