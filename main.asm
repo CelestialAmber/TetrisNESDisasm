@@ -207,6 +207,7 @@ initMagic       := $0750                        ; Initialized to a hard-coded nu
 
 .include "constants.asm"
 
+.feature force_range ; allows -1 vs <-1 (used in orientationTable)
 
 .segment        "PRG_chunk1": absolute
 
@@ -347,7 +348,7 @@ initRamContinued:
         jsr     LAA82
         lda     #$2C
         jsr     LAA82
-        lda     #EMPTY_TILE
+        lda     #tileEmpty
         ldx     #>playfield
         ldy     #>playfieldForSecondPlayer
         jsr     memset_page
@@ -1089,7 +1090,7 @@ game_typeb_nametable_patch:
         .byte   $FE,$23,$57,$3D,$3E,$3E,$3E,$3E
         .byte   $3E,$3E,$3F,$FD
 gameModeState_initGameState:
-        lda     #EMPTY_TILE
+        lda     #tileEmpty
         ldx     #>playfield
         ldy     #>playfield
         jsr     memset_page
@@ -1295,7 +1296,7 @@ typeBGuaranteeBlank:
         clc
         adc     generalCounter5
         tay
-        lda     #EMPTY_TILE
+        lda     #tileEmpty
         sta     playfield,y
         jsr     updateAudioWaitForNmiAndResetOamStaging
         dec     generalCounter
@@ -1313,7 +1314,7 @@ copyPlayfieldToPlayer2:
         ldx     player1_startHeight
         lda     typeBBlankInitCountByHeightTable,x
         tay
-        lda     #EMPTY_TILE
+        lda     #tileEmpty
 
 typeBBlankInitPlayer1:
         sta     playfield,y
@@ -1325,7 +1326,7 @@ typeBBlankInitPlayer1:
         ldx     player2_startHeight
         lda     typeBBlankInitCountByHeightTable,x
         tay
-        lda     #EMPTY_TILE
+        lda     #tileEmpty
 typeBBlankInitPlayer2:
         sta     playfieldForSecondPlayer,y
         dey
@@ -1337,8 +1338,8 @@ endTypeBInit:
 typeBBlankInitCountByHeightTable:
         .byte   $C8,$AA,$96,$78,$64,$50
 rngTable:
-        .byte   EMPTY_TILE,$7B,EMPTY_TILE,$7C,$7D,$7D,EMPTY_TILE
-        .byte   EMPTY_TILE
+        .byte   tileEmpty,tile1,tileEmpty,tile2
+        .byte   tile3,tile3,tileEmpty,tileEmpty
 gameModeState_updateCountersAndNonPlayerState:
         lda     #CHR_GAME
         jsr     changeCHRBank0
@@ -1400,11 +1401,32 @@ rotate_tetrimino:
 @ret:   rts
 
 rotationTable:
-        .dbyt   $0301,$0002,$0103,$0200
-        .dbyt   $0705,$0406,$0507,$0604
-        .dbyt   $0909,$0808,$0A0A,$0C0C
-        .dbyt   $0B0B,$100E,$0D0F,$0E10
-        .dbyt   $0F0D,$1212,$1111
+        .byte   tLeft, tRight  ; from tUp
+        .byte   tUp, tDown     ; from tRight
+        .byte   tRight, tLeft  ; from tDown
+        .byte   tDown, tUp     ; from tLeft
+
+        .byte   jDown, jUp     ; from jLeft
+        .byte   jLeft, jRight  ; from jUp
+        .byte   jUp, jDown     ; from jRight
+        .byte   jRight, jLeft  ; from jDown
+
+        .byte   zVert, zVert   ; from zHoriz
+        .byte   zHoriz, zHoriz ; from zVert
+
+        .byte   oFixed, oFixed ; from oFixed
+
+        .byte   sVert, sVert   ; from sHoriz
+        .byte   sHoriz, sHoriz ; from sVert
+
+        .byte   lUp, lDown     ; from lRight
+        .byte   lRight, lLeft  ; from lDown
+        .byte   lDown, lUp     ; from lLeft
+        .byte   lLeft, lRight  ; from lUp
+
+        .byte   iHoriz, iHoriz ; from iVert
+        .byte   iVert, iVert   ; from iHoriz
+
 drop_tetrimino:
         lda     autorepeatY
         bpl     @notBeginningOfGame
@@ -1635,36 +1657,37 @@ stageSpriteForCurrentPiece:
         rts
 
 orientationTable:
-        .byte   $00,$7B,$FF,$00,$7B,$00,$00,$7B
-        .byte   $01,$FF,$7B,$00,$FF,$7B,$00,$00
-        .byte   $7B,$00,$00,$7B,$01,$01,$7B,$00
-        .byte   $00,$7B,$FF,$00,$7B,$00,$00,$7B
-        .byte   $01,$01,$7B,$00,$FF,$7B,$00,$00
-        .byte   $7B,$FF,$00,$7B,$00,$01,$7B,$00
-        .byte   $FF,$7D,$00,$00,$7D,$00,$01,$7D
-        .byte   $FF,$01,$7D,$00,$FF,$7D,$FF,$00
-        .byte   $7D,$FF,$00,$7D,$00,$00,$7D,$01
-        .byte   $FF,$7D,$00,$FF,$7D,$01,$00,$7D
-        .byte   $00,$01,$7D,$00,$00,$7D,$FF,$00
-        .byte   $7D,$00,$00,$7D,$01,$01,$7D,$01
-        .byte   $00,$7C,$FF,$00,$7C,$00,$01,$7C
-        .byte   $00,$01,$7C,$01,$FF,$7C,$01,$00
-        .byte   $7C,$00,$00,$7C,$01,$01,$7C,$00
-        .byte   $00,$7B,$FF,$00,$7B,$00,$01,$7B
-        .byte   $FF,$01,$7B,$00,$00,$7D,$00,$00
-        .byte   $7D,$01,$01,$7D,$FF,$01,$7D,$00
-        .byte   $FF,$7D,$00,$00,$7D,$00,$00,$7D
-        .byte   $01,$01,$7D,$01,$FF,$7C,$00,$00
-        .byte   $7C,$00,$01,$7C,$00,$01,$7C,$01
-        .byte   $00,$7C,$FF,$00,$7C,$00,$00,$7C
-        .byte   $01,$01,$7C,$FF,$FF,$7C,$FF,$FF
-        .byte   $7C,$00,$00,$7C,$00,$01,$7C,$00
-        .byte   $FF,$7C,$01,$00,$7C,$FF,$00,$7C
-        .byte   $00,$00,$7C,$01,$FE,$7B,$00,$FF
-        .byte   $7B,$00,$00,$7B,$00,$01,$7B,$00
-        .byte   $00,$7B,$FE,$00,$7B,$FF,$00,$7B
-        .byte   $00,$00,$7B,$01,$00,$FF,$00,$00
-        .byte   $FF,$00,$00,$FF,$00,$00,$FF,$00
+        ; y offset, tile ID, x offset per mino per orientation
+        .byte    0, tile1,-1, 0, tile1, 0, 0, tile1, 1,-1, tile1, 0 ; $00 t up
+        .byte   -1, tile1, 0, 0, tile1, 0, 0, tile1, 1, 1, tile1, 0 ; $01 t right
+        .byte    0, tile1,-1, 0, tile1, 0, 0, tile1, 1, 1, tile1, 0 ; $02 t down (spawn)
+        .byte   -1, tile1, 0, 0, tile1,-1, 0, tile1, 0, 1, tile1, 0 ; $03 t left
+
+        .byte   -1, tile3, 0, 0, tile3, 0, 1, tile3,-1, 1, tile3, 0 ; $04 j left
+        .byte   -1, tile3,-1, 0, tile3,-1, 0, tile3, 0, 0, tile3, 1 ; $05 j up
+        .byte   -1, tile3, 0,-1, tile3, 1, 0, tile3, 0, 1, tile3, 0 ; $06 j right
+        .byte    0, tile3,-1, 0, tile3, 0, 0, tile3, 1, 1, tile3, 1 ; $07 j down (spawn)
+
+        .byte    0, tile2,-1, 0, tile2, 0, 1, tile2, 0, 1, tile2, 1 ; $08 z horizontal (spawn)
+        .byte   -1, tile2, 1, 0, tile2, 0, 0, tile2, 1, 1, tile2, 0 ; $09 z vertical
+
+        .byte    0, tile1,-1, 0, tile1, 0, 1, tile1,-1, 1, tile1, 0 ; $0A o (spawn)
+
+        .byte    0, tile3, 0, 0, tile3, 1, 1, tile3,-1, 1, tile3, 0 ; $0B s horizontal (spawn)
+        .byte   -1, tile3, 0, 0, tile3, 0, 0, tile3, 1, 1, tile3, 1 ; $0C s vertical
+
+        .byte   -1, tile2, 0, 0, tile2, 0, 1, tile2, 0, 1, tile2, 1 ; $0D l right
+        .byte    0, tile2,-1, 0, tile2, 0, 0, tile2, 1, 1, tile2,-1 ; $0E l down (spawn)
+        .byte   -1, tile2,-1,-1, tile2, 0, 0, tile2, 0, 1, tile2, 0 ; $0F l left
+        .byte   -1, tile2, 1, 0, tile2,-1, 0, tile2, 0, 0, tile2, 1 ; $10 l up
+
+        .byte   -2, tile1, 0,-1, tile1, 0, 0, tile1, 0, 1, tile1, 0 ; $11 i vertical
+        .byte    0, tile1,-2, 0, tile1,-1, 0, tile1, 0, 0, tile1, 1 ; $12 i horizontal (spawn)
+
+        ; Hidden orientation used during line clear animation and game over curtain
+        .byte    0, tileHidden, 0, 0, tileHidden, 0, 0, tileHidden, 0, 0, tileHidden, 0 ; $13
+
+; unused sprite staging routine
         lda     spriteIndexInOamContentLookup
         asl     a
         asl     a
@@ -2312,7 +2335,7 @@ isPositionValid:
         adc     selectingLevelOrHeight
         tay
         lda     (playfieldAddr),y
-        cmp     #EMPTY_TILE
+        cmp     #tileEmpty
         bcc     @invalid
         lda     orientationTable,x
         clc
@@ -2875,16 +2898,26 @@ useNewSpawnID:
         rts
 
 tetriminoTypeFromOrientation:
-        .byte   $00,$00,$00,$00,$01,$01,$01,$01
-        .byte   $02,$02,$03,$04,$04,$05,$05,$05
-        .byte   $05,$06,$06
+        .byte   tPiece, tPiece, tPiece, tPiece
+        .byte   jPiece, jPiece, jPiece, jPiece
+        .byte   zPiece, zPiece
+        .byte   oPiece
+        .byte   sPiece, sPiece
+        .byte   lPiece, lPiece, lPiece, lPiece
+        .byte   iPiece, iPiece
 spawnTable:
-        .byte   $02,$07,$08,$0A,$0B,$0E,$12
+        .byte   tDown, jDown, zHoriz, oFixed, sHoriz, lDown, iHoriz
+; unused portion of spawnTable:
         .byte   $02
 spawnOrientationFromOrientation:
-        .byte   $02,$02,$02,$02,$07,$07,$07,$07
-        .byte   $08,$08,$0A,$0B,$0B,$0E,$0E,$0E
-        .byte   $0E,$12,$12
+        .byte   tDown, tDown, tDown, tDown
+        .byte   jDown, jDown, jDown, jDown
+        .byte   zHoriz, zHoriz
+        .byte   oFixed
+        .byte   sHoriz, sHoriz
+        .byte   lDown, lDown, lDown, lDown
+        .byte   iHoriz, iHoriz
+
 incrementPieceStat:
         tax
         lda     tetriminoTypeFromOrientation,x
@@ -2998,7 +3031,7 @@ playState_updateGameOverCurtain:
         tay
         lda     #$00
         sta     generalCounter3
-        lda     #$13
+        lda     #hidden
         sta     currentPiece
 @drawCurtainRow:
         lda     #$4F
@@ -3066,7 +3099,7 @@ playState_checkForCompletedRows:
         ldx     #$0A
 @checkIfRowComplete:
         lda     (playfieldAddr),y
-        cmp     #EMPTY_TILE
+        cmp     #tileEmpty
         beq     @rowNotComplete
         iny
         dex
@@ -3089,14 +3122,14 @@ playState_checkForCompletedRows:
         dey
         cpy     #$FF
         bne     @movePlayfieldDownOneRow
-        lda     #EMPTY_TILE
+        lda     #tileEmpty
         ldy     #$00
 @clearRowTopRow:
         sta     (playfieldAddr),y
         iny
         cpy     #$0A
         bne     @clearRowTopRow
-        lda     #$13
+        lda     #hidden
         sta     currentPiece
         jmp     @incrementLineIndex
 
@@ -3415,7 +3448,7 @@ gameModeState_handleGameOver:
         lda     #$01
         sta     player1_playState
         sta     player2_playState
-        lda     #EMPTY_TILE
+        lda     #tileEmpty
         ldx     #>playfield
         ldy     #>playfieldForSecondPlayer
         jsr     memset_page
@@ -3440,7 +3473,7 @@ updateMusicSpeed:
         ldx     #$0A
 @checkForBlockInRow:
         lda     (playfieldAddr),y
-        cmp     #EMPTY_TILE
+        cmp     #tileEmpty
         bne     @foundBlockInRow
         iny
         dex
@@ -3613,7 +3646,7 @@ gameModeState_vblankThenRunState2:
         rts
 
 playState_unassignOrientationId:
-        lda     #$13
+        lda     #hidden
         sta     currentPiece
         rts
 

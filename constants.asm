@@ -50,14 +50,10 @@ MMC1_4KCHR_32KPRG_H_MIRROR := $10
 
 PRG_32K_BANK := $00
 
-.enum
-CHR_TITLE_MENU
-CHR_TYPEB_ENDING
-CHR_TYPEA_ENDING
-CHR_GAME
-.endenum
-
-EMPTY_TILE := $EF
+CHR_TITLE_MENU   = $00
+CHR_TYPEB_ENDING = $01
+CHR_TYPEA_ENDING = $02
+CHR_GAME         = $03
 
 RENDER_HIGH_SCORE_LETTER := $80
 RENDER_STATS := $40
@@ -100,3 +96,41 @@ SFX_LINECLEAR_INIT := $04
 SFX_TETRIS_INIT := $05
 
 .endif
+
+; tile IDs
+tile1 = $7B
+tile2 = $7C
+tile3 = $7D
+tileEmpty = $EF ; blank tile used for empty squares
+tileHidden = $FF ; blank tile used to hide minos
+
+; Piece IDs
+tPiece = $00
+jPiece = $01
+zPiece = $02
+oPiece = $03
+sPiece = $04
+lPiece = $05
+iPiece = $06
+
+; Orientations
+tUp    = $00
+tRight = $01
+tDown  = $02
+tLeft  = $03
+jLeft  = $04
+jUp    = $05
+jRight = $06
+jDown  = $07
+zHoriz = $08
+zVert  = $09
+oFixed = $0A
+sHoriz = $0B
+sVert  = $0C
+lRight = $0D
+lDown  = $0E
+lLeft  = $0F
+lUp    = $10
+iVert  = $11
+iHoriz = $12
+hidden = $13
