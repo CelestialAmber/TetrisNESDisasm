@@ -2449,7 +2449,7 @@ render_mode_play_and_demo:
         lda     player1_lines
         jsr     twoDigsToPPU
         lda     outOfDateRenderFlags
-        and     #$FF^RENDER_LINES
+        and     #~RENDER_LINES
         sta     outOfDateRenderFlags
         jmp     @renderLevel
 
@@ -2471,7 +2471,7 @@ render_mode_play_and_demo:
         lda     player2_lines
         jsr     twoDigsToPPU
         lda     outOfDateRenderFlags
-        and     #$FF^RENDER_LINES
+        and     #~RENDER_LINES
         sta     outOfDateRenderFlags
 @renderLevel:
         lda     outOfDateRenderFlags
@@ -2491,7 +2491,7 @@ render_mode_play_and_demo:
         jsr     twoDigsToPPU
         jsr     updatePaletteForLevel
         lda     outOfDateRenderFlags
-        and     #$FF^RENDER_LEVEL
+        and     #~RENDER_LEVEL
         sta     outOfDateRenderFlags
 @renderScore:
         lda     numberOfPlayers
@@ -2511,7 +2511,7 @@ render_mode_play_and_demo:
         lda     player1_score
         jsr     twoDigsToPPU
         lda     outOfDateRenderFlags
-        and     #$FF^RENDER_SCORE
+        and     #~RENDER_SCORE
         sta     outOfDateRenderFlags
 @renderStats:
         lda     numberOfPlayers
@@ -2539,7 +2539,7 @@ render_mode_play_and_demo:
         cmp     #$07
         bne     @renderPieceStat
         lda     outOfDateRenderFlags
-        and     #$FF^RENDER_STATS
+        and     #~RENDER_STATS
         sta     outOfDateRenderFlags
 @renderTetrisFlashAndSound:
         lda     #$3F
@@ -4406,7 +4406,7 @@ playState_bTypeGoalCheck:
 .if PAL = 1
         beq     checkSelectHeldToAddPoints
         lda     heldButtons_player1
-        and     #$20
+        and     #BUTTON_SELECT
         bne     @gameOver
 .else
         beq     playState_bTypeGoalCheck_ret
@@ -4468,12 +4468,12 @@ sleep_for_a_vblanks:
 .if PAL = 1
 checkSelectHeldToAddPoints:
         lda     heldButtons_player1
-        and     #$20
+        and     #BUTTON_SELECT
         beq     playState_bTypeGoalCheck_ret
         inc     score+2
         inc     player1_score+2
         lda     outOfDateRenderFlags
-        ora     #$04
+        ora     #RENDER_SCORE
         sta     outOfDateRenderFlags
         jmp     playState_bTypeGoalCheck_ret
 .endif
