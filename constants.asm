@@ -65,6 +65,58 @@ RENDER_LINES := $01
 PAL = 0
 .endif
 
+.ifndef NWC
+NWC = 0
+.endif
+
+.if NWC = 1
+
+activeTetriminoX = player1_tetriminoX
+activeTetriminoY = player1_tetriminoY
+activeCurrentPiece = player1_currentPiece
+activeLevelNumber = player1_levelNumber
+activeFallTimer = player1_fallTimer
+activeAutorepeatX = player1_autorepeatX
+activeStartLevel = player1_startLevel
+activePlayState = player1_playState
+activeVramRow = player1_vramRow
+activeCompletedRow = player1_completedRow
+activeAutorepeatY = player1_autorepeatY
+activeHoldDownPoints = player1_holdDownPoints
+activeLines = player1_lines
+activeRowY = player1_rowY
+activeScore = player1_score
+activeCompletedLines = player1_completedLines
+activeLineIndex = player1_lineIndex
+activeCurtainRow = player1_curtainRow
+activeStartHeight = player1_startHeight
+activeGarbageHole = player1_garbageHole
+
+.else
+
+activeTetriminoX = tetriminoX
+activeTetriminoY = tetriminoY
+activeCurrentPiece = currentPiece
+activeLevelNumber = levelNumber
+activeFallTimer = fallTimer
+activeAutorepeatX = autorepeatX
+activeStartLevel = startLevel
+activePlayState = playState
+activeVramRow = vramRow
+activeCompletedRow = completedRow
+activeAutorepeatY = autorepeatY
+activeHoldDownPoints = holdDownPoints
+activeLines = lines
+activeRowY = rowY
+activeScore = score
+activeCompletedLines = completedLines
+activeLineIndex = lineIndex
+activeCurtainRow = curtainRow
+activeStartHeight = startHeight
+activeGarbageHole = garbageHole
+
+.endif
+
 .if PAL = 1
 
 DAS_DELAY := $08

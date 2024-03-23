@@ -21,6 +21,13 @@ INES_SRAM   = 0 ; 1 = battery backed SRAM at $6000-7FFF
 
 .segment "CHR"
 .incbin "gfx/title_menu_tileset.chr"
+.if NWC <> 1
 .incbin "gfx/typeB_ending_tileset.chr"
 .incbin "gfx/typeA_ending_tileset.chr"
+.endif
 .incbin "gfx/game_tileset.chr"
+.if NWC = 1
+.repeat $2000
+.byte $FF
+.endrepeat
+.endif
