@@ -1064,9 +1064,9 @@ gameModeState_initGameBackground:
         jsr     updateAudioWaitForNmiAndDisablePpuRendering
         jsr     disableNmi
 .if NWC = 1
-        lda     #$98                                           ; 82CF A9 98
-        sta     PPUCTRL                                        ; 82D1 8D 00 20
-        sta     currentPpuCtrl                                 ; 82D4 85 FF
+        lda     #$98
+        sta     PPUCTRL
+        sta     currentPpuCtrl
 .endif
         lda     #CHR_GAME
         jsr     changeCHRBank0
@@ -2938,7 +2938,7 @@ pickRandomTetrimino:
 
 @realStart:
 .if NWC = 1
-        ldx     #$17
+        ldx     #rng_seed
         ldy     #$02
         jsr     generateNextPseudorandomNumber
 .endif
@@ -5637,6 +5637,7 @@ switch_s_plus_2a:
         sta     tmp2
         stx     tmp1
         jmp     (tmp1)
+
 .if NWC <> 1
         sei
 .endif
@@ -5765,11 +5766,7 @@ defaultHighScoresTable:
 legal_screen_nametable:
         .incbin "gfx/nametables/legal_screen_nametable.bin"
 title_screen_nametable:
-.if NWC = 1
-        .include "gfx/nametables/title_screen_nametable_nwc.asm"
-.else
-        .incbin "gfx/nametables/title_screen_nametable.bin"
-.endif
+        .include "gfx/nametables/title_screen_nametable.asm"
 game_type_menu_nametable:
         .incbin "gfx/nametables/game_type_menu_nametable.bin"
 level_menu_nametable:
@@ -7704,20 +7701,26 @@ reset:
 .endif
         jsr     changePRGBank
         jmp     initRam
+
 .if NWC = 1
         lda     #$10
         jsr     $F1BD
         lda     #$00
         jsr     $F1BD
         jmp     initRam
+
 .include "data/unreferenced_data5_nwc.asm"
+
 .else
+
 .include "data/unreferenced_data5.asm"
+
 ; Unreferenced.  Label previously used as MMC1_PRG
         .byte   $00,$00,$00,$00,$00,$00,$00,$00
         .byte   $00
         .byte   $00
 ; End of "PRG_chunk3" segment
+
 .endif
 
 .code
