@@ -86,8 +86,8 @@
         .byte   $FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF
         .byte   $74,$75,$76,$77,$78,$79,$7A,$7B
         .byte   $FF,$90,$A1,$82,$22,$80,$20,$62
-.if NWC =1
-; "PRESS START" removed
+.if NWC = 1
+; "PUSH START" removed
         .byte   $40,$83,$FF,$FF,$FF,$FF,$FF,$FF
         .byte   $FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF
 .else
