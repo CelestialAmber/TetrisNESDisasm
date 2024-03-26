@@ -517,7 +517,9 @@ gameMode_legalScreen:
         jsr     updateAudio2
         lda     #$00
         sta     renderMode
-.if NWC <> 1
+.if NWC = 1
+        lda     #$FF
+.else
         jsr     updateAudioWaitForNmiAndDisablePpuRendering
         jsr     disableNmi
         lda     #CHR_TITLE_MENU
@@ -533,8 +535,6 @@ gameMode_legalScreen:
         jsr     updateAudioWaitForNmiAndEnablePpuRendering
         jsr     updateAudioWaitForNmiAndResetOamStaging
         lda     #$00
-.else
-        lda     #$FF
 .endif
         ldx     #>oamStaging
         ldy     #>oamStaging
@@ -7712,11 +7712,11 @@ reset:
         bpl     @vsyncWait2
         dex
         txs
-.if NWC <> 1
+.if NWC = 1
+        lda     #$00
+.else
         inc     reset
         lda     #MMC1_4KCHR_32KPRG_H_MIRROR
-.else
-        lda     #$00
 .endif
         jsr     setMMC1Control
         lda     #CHR_TITLE_MENU
