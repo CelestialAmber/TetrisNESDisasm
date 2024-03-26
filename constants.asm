@@ -65,6 +65,10 @@ RENDER_LINES := $01
 PAL = 0
 .endif
 
+.ifndef NWC
+NWC = 0
+.endif
+
 .if PAL = 1
 
 DAS_DELAY := $08

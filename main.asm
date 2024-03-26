@@ -10,6 +10,32 @@ spawnID         := $0019
 spawnCount      := $001A
 verticalBlankingInterval:= $0033
 unused_0E       := $0034                              ; Always $0E
+
+.if NWC = 1
+
+tetriminoX      := $0060
+tetriminoY      := $0061
+currentPiece    := $0062
+levelNumber     := $0064
+fallTimer       := $0065
+autorepeatX     := $0066
+startLevel      := $0067
+playState       := $0068
+vramRow         := $0069
+completedRow    := $006A
+autorepeatY     := $006E
+holdDownPoints  := $006F
+lines           := $0070
+rowY            := $0072
+score           := $0073
+completedLines  := $0076
+lineIndex       := $0077
+curtainRow      := $0078
+startHeight     := $0079
+garbageHole     := $007A
+
+.else
+
 tetriminoX      := $0040                        ; Player data is $20 in size. It is copied here from $60 or $80, processed, then copied back
 tetriminoY      := $0041
 currentPiece    := $0042                        ; Current piece as an orientation ID
@@ -30,6 +56,9 @@ lineIndex       := $0057                        ; Iteration count of playState_c
 curtainRow      := $0058
 startHeight     := $0059
 garbageHole     := $005A                        ; Position of hole in received garbage
+
+.endif
+
 player1_tetriminoX:= $0060
 player1_tetriminoY:= $0061
 player1_currentPiece:= $0062
@@ -46,6 +75,7 @@ player1_lines   := $0070
 player1_rowY    := $0072
 player1_score   := $0073
 player1_completedLines:= $0076
+player1_lineIndex := $0077
 player1_curtainRow:= $0078
 player1_startHeight:= $0079
 player1_garbageHole:= $007A
@@ -237,9 +267,11 @@ nmi:    pha
         lda     #$00
         adc     frameCounter+1
         sta     frameCounter+1
+.if NWC <> 1
         ldx     #rng_seed
         ldy     #$02
         jsr     generateNextPseudorandomNumber
+.endif
         lda     #$00
         sta     ppuScrollX
         sta     PPUSCROLL
@@ -323,11 +355,18 @@ initRamContinued:
         ldy     #$00
         sty     ppuScrollY
         sty     PPUSCROLL
+.if NWC = 1
+        lda     #$80
+.else
         lda     #$90
+.endif
         sta     currentPpuCtrl
         sta     PPUCTRL
         lda     #$06
         sta     PPUMASK
+.if NWC = 1
+        sta     currentPpuMask
+.endif
         jsr     LE006
         jsr     updateAudio2
         lda     #$C0
@@ -478,6 +517,9 @@ gameMode_legalScreen:
         jsr     updateAudio2
         lda     #$00
         sta     renderMode
+.if NWC = 1
+        lda     #$FF
+.else
         jsr     updateAudioWaitForNmiAndDisablePpuRendering
         jsr     disableNmi
         lda     #CHR_TITLE_MENU
@@ -493,9 +535,11 @@ gameMode_legalScreen:
         jsr     updateAudioWaitForNmiAndEnablePpuRendering
         jsr     updateAudioWaitForNmiAndResetOamStaging
         lda     #$00
+.endif
         ldx     #>oamStaging
         ldy     #>oamStaging
         jsr     memset_page
+.if NWC <> 1
         lda     #LEGAL_SLEEP_TIME
         jsr     sleep_for_a_vblanks
         lda     #LEGAL_SLEEP_TIME
@@ -508,6 +552,7 @@ gameMode_legalScreen:
         dec     generalCounter
         bne     @waitForStartButton
 @continueToNextScreen:
+.endif
         inc     gameMode
         rts
 
@@ -519,24 +564,48 @@ gameMode_titleScreen:
         sta     displayNextPiece
         jsr     updateAudioWaitForNmiAndDisablePpuRendering
         jsr     disableNmi
+.if NWC = 1
+        lda     #$80
+        sta     PPUCTRL
+        sta     currentPpuCtrl
+.else
         lda     #CHR_TITLE_MENU
         jsr     changeCHRBank0
         lda     #CHR_TITLE_MENU
         jsr     changeCHRBank1
+.endif
         jsr     bulkCopyToPpu
         .addr   menu_palette
         jsr     bulkCopyToPpu
         .addr   title_screen_nametable
+.if NWC = 1
+        lda     $7005
+        sta     generalCounter
+@shuffleSeed:
+        ldx     #rng_seed
+        ldy     #$02
+        jsr     generateNextPseudorandomNumber
+        dec     generalCounter
+        bne     @shuffleSeed
+.endif
         jsr     waitForVBlankAndEnableNmi
         jsr     updateAudioWaitForNmiAndResetOamStaging
         jsr     updateAudioWaitForNmiAndEnablePpuRendering
         jsr     updateAudioWaitForNmiAndResetOamStaging
+.if NWC = 1
+        lda     #$FF
+.else
         lda     #$00
+.endif
         ldx     #>oamStaging
         ldy     #>oamStaging
         jsr     memset_page
         lda     #$00
         sta     frameCounter+1
+.if NWC = 1
+        lda     #$80
+        jsr     sleep_for_a_vblanks
+.else
 @waitForStartButton:
         jsr     updateAudioWaitForNmiAndResetOamStaging
         lda     newlyPressedButtons_player1
@@ -551,9 +620,10 @@ gameMode_titleScreen:
 @startButtonPressed:
         lda     #$02
         sta     soundEffectSlot1Init
+.endif
         inc     gameMode
         rts
-
+.if NWC <> 1
 ; Start demo
 @timeout:
         lda     #$02
@@ -561,11 +631,13 @@ gameMode_titleScreen:
         lda     #$06
         sta     gameMode
         rts
+.endif
 
 render_mode_legal_and_title_screens:
         lda     currentPpuCtrl
         and     #$FC
         sta     currentPpuCtrl
+.if NWC <> 1
         lda     #$00
         sta     ppuScrollX
         sta     PPUSCROLL
@@ -579,14 +651,18 @@ render_mode_legal_and_title_screens:
         sta     gameType
         lda     #$04
         lda     gameMode
+.endif
         rts
 
 gameMode_gameTypeMenu:
+.if NWC <> 1
         inc     initRam
         lda     #MMC1_4KCHR_32KPRG_H_MIRROR
         jsr     setMMC1Control
+.endif
         lda     #$01
         sta     renderMode
+.if NWC <> 1
         jsr     updateAudioWaitForNmiAndDisablePpuRendering
         jsr     disableNmi
         jsr     bulkCopyToPpu
@@ -656,9 +732,11 @@ L830B:  lda     #$FF
         bne     @startNotPressed
         lda     #$02
         sta     soundEffectSlot1Init
+.endif
         inc     gameMode
         rts
 
+.if NWC <> 1
 @startNotPressed:
         lda     newlyPressedButtons_player1
         cmp     #BUTTON_B
@@ -716,14 +794,18 @@ L830B:  lda     #$FF
         jsr     loadSpriteIntoOamStaging
         jsr     updateAudioWaitForNmiAndResetOamStaging
         jmp     L830B
+.endif
 
 gameMode_levelMenu:
+.if NWC <> 1
         inc     initRam
         lda     #MMC1_4KCHR_32KPRG_H_MIRROR
         jsr     setMMC1Control
         jsr     updateAudio2
+.endif
         lda     #$01
         sta     renderMode
+.if NWC <> 1
         jsr     updateAudioWaitForNmiAndDisablePpuRendering
         jsr     disableNmi
         lda     #CHR_TITLE_MENU
@@ -761,6 +843,7 @@ gameMode_levelMenu:
         jmp     @forceStartLevelToRange
 
 gameMode_levelMenu_processPlayer1Navigation:
+.endif
         lda     #$00
         sta     activePlayer
         lda     player1_startLevel
@@ -771,13 +854,16 @@ gameMode_levelMenu_processPlayer1Navigation:
         sta     selectingLevelOrHeight
         lda     newlyPressedButtons_player1
         sta     newlyPressedButtons
+.if NWC <> 1
         jsr     gameMode_levelMenu_handleLevelHeightNavigation
+.endif
         lda     startLevel
         sta     player1_startLevel
         lda     startHeight
         sta     player1_startHeight
         lda     selectingLevelOrHeight
         sta     originalY
+.if NWC <> 1
         lda     newlyPressedButtons_player1
         cmp     #BUTTON_START
         bne     @checkBPressed
@@ -789,13 +875,17 @@ gameMode_levelMenu_processPlayer1Navigation:
         adc     #$0A
         sta     player1_startLevel
 @startAndANotPressed:
+.endif
         lda     #$00
         sta     gameModeState
+.if NWC <> 1
         lda     #$02
         sta     soundEffectSlot1Init
+.endif
         inc     gameMode
         rts
 
+.if NWC <> 1
 @checkBPressed:
         lda     newlyPressedButtons_player1
         cmp     #BUTTON_B
@@ -971,6 +1061,7 @@ gameMode_levelMenu_handleLevelHeightNavigation:
 @stageHeightSelectCursor:
         jsr     loadSpriteIntoOamStaging
 @ret:   rts
+.endif
 
 levelToSpriteYOffset:
         .byte   $53,$53,$53,$53,$53,$63,$63,$63
@@ -988,17 +1079,24 @@ render_mode_menu_screens:
         lda     currentPpuCtrl
         and     #$FC
         sta     currentPpuCtrl
+.if NWC <> 1
         sta     PPUCTRL
         lda     #$00
         sta     ppuScrollX
         sta     PPUSCROLL
         sta     ppuScrollY
         sta     PPUSCROLL
+.endif
         rts
 
 gameModeState_initGameBackground:
         jsr     updateAudioWaitForNmiAndDisablePpuRendering
         jsr     disableNmi
+.if NWC = 1
+        lda     #$98
+        sta     PPUCTRL
+        sta     currentPpuCtrl
+.endif
         lda     #CHR_GAME
         jsr     changeCHRBank0
         lda     #CHR_GAME
@@ -1357,8 +1455,10 @@ gameModeState_updateCountersAndNonPlayerState:
         and     #BUTTON_SELECT
         beq     @ret
         lda     displayNextPiece
+.if NWC <> 1
         eor     #$01
         sta     displayNextPiece
+.endif
 @ret:   inc     gameModeState
         rts
 
@@ -2866,6 +2966,11 @@ pickRandomTetrimino:
         rts
 
 @realStart:
+.if NWC = 1
+        ldx     #rng_seed
+        ldy     #$02
+        jsr     generateNextPseudorandomNumber
+.endif
         inc     spawnCount
         lda     rng_seed
         clc
@@ -2908,7 +3013,11 @@ tetriminoTypeFromOrientation:
 spawnTable:
         .byte   tDown, jDown, zHoriz, oFixed, sHoriz, lDown, iHoriz
 ; unused portion of spawnTable:
+.if NWC = 1
+        .byte   $12
+.else
         .byte   $02
+.endif
 spawnOrientationFromOrientation:
         .byte   tDown, tDown, tDown, tDown
         .byte   jDown, jDown, jDown, jDown
@@ -3051,6 +3160,10 @@ playState_updateGameOverCurtain:
 @ret:   rts
 
 @curtainFinished:
+.if NWC = 1
+        jsr     updateAudioWaitForNmiAndResetOamStaging
+        jmp     @curtainFinished
+.endif
         lda     numberOfPlayers
         cmp     #$02
         beq     @exitGame
@@ -3281,6 +3394,12 @@ incrementLines:
         inc     lines+1
 L9BC7:  lda     lines
         and     #$0F
+.if NWC = 1
+        beq     @incrementLevel
+        cmp     #$05
+        bne     L9BFB
+        jmp     @incrementLevel
+.else
         bne     L9BFB
         jmp     L9BD0
 
@@ -3299,6 +3418,8 @@ L9BD0:  lda     lines+1
         lda     levelNumber
         cmp     generalCounter
         bpl     L9BFB
+.endif
+@incrementLevel:
         inc     levelNumber
         lda     #$06
         sta     soundEffectSlot1Init
@@ -3308,6 +3429,9 @@ L9BD0:  lda     lines+1
 L9BFB:  dex
         bne     incrementLines
 addHoldDownPoints:
+.if NWC = 1
+        sei
+.endif
         lda     holdDownPoints
         cmp     #$02
         bmi     addLineClearPoints
@@ -3397,6 +3521,9 @@ L9C94:  dec     generalCounter
         lda     #$00
         sta     completedLines
         inc     playState
+.if NWC = 1
+        cli
+.endif
         rts
 
 pointsTable:
@@ -3627,9 +3754,11 @@ setMusicTrack:
 
 ; A+B+Select+Start
 gameModeState_checkForResetKeyCombo:
+.if NWC <> 1
         lda     heldButtons_player1
         cmp     #BUTTON_A+BUTTON_B+BUTTON_SELECT+BUTTON_START
         beq     @reset
+.endif
         inc     gameModeState
         rts
 
@@ -4146,7 +4275,11 @@ highScoreIndexToHighScoreScoresOffset:
         .byte   $00,$03,$06,$09,$0C,$0F,$12,$15
 highScoreEntryScreen:
         inc     initRam
+.if NWC = 1
+        lda     #$00
+.else
         lda     #MMC1_4KCHR_32KPRG_H_MIRROR
+.endif
         jsr     setMMC1Control
         lda     #$09
         jsr     setMusicTrack
@@ -4340,6 +4473,9 @@ render_mode_congratulations_screen:
 
 ; Handles pausing and exiting demo
 gameModeState_startButtonHandling:
+.if NWC = 1
+        jmp     @ret
+.endif
         lda     gameMode
         cmp     #$05
         bne     @checkIfInGame
@@ -4371,8 +4507,10 @@ gameModeState_startButtonHandling:
         lda     #$00
         sta     renderMode
         jsr     updateAudioAndWaitForNmi
+.if NWC <> 1
         lda     #$16
         sta     PPUMASK
+.endif
         lda     #$FF
         ldx     #>oamStaging
         ldy     #>oamStaging
@@ -4391,8 +4529,11 @@ gameModeState_startButtonHandling:
         jsr     updateAudioWaitForNmiAndResetOamStaging
         jmp     @pauseLoop
 
-@resume:lda     #$1E
+@resume:
+.if NWC <> 1
+        lda     #$1E
         sta     PPUMASK
+.endif
         lda     #$00
         sta     musicStagingNoiseHi
         sta     player1_vramRow
@@ -5186,7 +5327,9 @@ _updatePpuMask:
 
 updateAudioWaitForNmiAndEnablePpuRendering:
         jsr     updateAudioAndWaitForNmi
+.if NWC <> 1
         jsr     copyCurrentScrollAndCtrlToPPU
+.endif
         lda     currentPpuMask
         ora     #$1E
         bne     _updatePpuMask
@@ -5524,9 +5667,15 @@ switch_s_plus_2a:
         stx     tmp1
         jmp     (tmp1)
 
+.if NWC <> 1
         sei
+.endif
         inc     initRam
+.if NWC = 1
+        lda     #$00
+.else
         lda     #$1A
+.endif
         jsr     setMMC1Control
         rts
 
@@ -5545,6 +5694,9 @@ setMMC1Control:
         rts
 
 changeCHRBank0:
+.if NWC = 1
+        rts
+.endif
         sta     MMC1_CHR0
         lsr     a
         sta     MMC1_CHR0
@@ -5557,6 +5709,9 @@ changeCHRBank0:
         rts
 
 changeCHRBank1:
+.if NWC = 1
+        rts
+.endif
         sta     MMC1_CHR1
         lsr     a
         sta     MMC1_CHR1
@@ -5569,6 +5724,9 @@ changeCHRBank1:
         rts
 
 changePRGBank:
+.if NWC = 1
+        rts
+.endif
         sta     MMC1_PRG
         lsr     a
         sta     MMC1_PRG
@@ -5637,7 +5795,7 @@ defaultHighScoresTable:
 legal_screen_nametable:
         .incbin "gfx/nametables/legal_screen_nametable.bin"
 title_screen_nametable:
-        .incbin "gfx/nametables/title_screen_nametable.bin"
+        .include "gfx/nametables/title_screen_nametable.asm"
 game_type_menu_nametable:
         .incbin "gfx/nametables/game_type_menu_nametable.bin"
 level_menu_nametable:
@@ -5675,6 +5833,8 @@ type_a_ending_nametable:
 unreferenced_data1:
 .if PAL = 1
         .incbin "data/unreferenced_data1_pal.bin"
+.elseif NWC = 1
+        .include "data/unreferenced_data1_nwc.asm"
 .else
         .incbin "data/unreferenced_data1.bin"
 .endif
@@ -5827,6 +5987,15 @@ advanceAudioSlotFrame:
 @ret:   rts
 
 unreferenced_data3:
+.if NWC = 1
+        .byte   $D0,$03,$20,$24,$E1,$20,$4F,$E1
+        .byte   $B5,$1E,$29,$80,$D0,$05,$A9,$00
+        .byte   $95,$1E,$60,$B5,$1E,$29,$BF,$95
+        .byte   $1E,$60,$B5,$16,$C9,$03,$D0,$04
+        .byte   $B5,$1E,$F0,$38,$B5,$1E,$A8,$0A
+        .byte   $90,$07,$B5,$1E,$09,$40,$4C,$FC
+        .byte   $E0,$B9,$B9,$DF,$95,$1E,$B5,$CF
+.else
         .byte   $FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF
         .byte   $FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF
         .byte   $FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF
@@ -5834,6 +6003,7 @@ unreferenced_data3:
         .byte   $00,$00,$00,$00,$00,$00,$00,$00
         .byte   $00,$00,$00,$00,$00,$00,$00,$00
         .byte   $00,$00,$00,$00,$00,$00,$00,$00
+.endif
         .byte   $03,$7F,$0F,$C0
 ; Referenced by initSoundEffectShared
 soundEffectSlot0_gameOverCurtainInitData:
@@ -7519,9 +7689,19 @@ music_endings_noiseScript:
 .segment        "PRG_chunk3": absolute
 
 ; incremented to reset MMC1 reg
-reset:  cld
+reset:
+.if NWC = 1
+        nop
+        nop
+.endif
+        cld
+.if NWC <> 1
         sei
+.endif
         ldx     #$00
+.if NWC = 1
+        sta     currentPpuCtrl
+.endif
         stx     PPUCTRL
         stx     PPUMASK
 @vsyncWait1:
@@ -7532,16 +7712,35 @@ reset:  cld
         bpl     @vsyncWait2
         dex
         txs
+.if NWC = 1
+        lda     #$00
+.else
         inc     reset
         lda     #MMC1_4KCHR_32KPRG_H_MIRROR
+.endif
         jsr     setMMC1Control
         lda     #CHR_TITLE_MENU
         jsr     changeCHRBank0
         lda     #CHR_TITLE_MENU
         jsr     changeCHRBank1
+.if NWC = 1
+        lda     #$00
+.else
         lda     #PRG_32K_BANK
+.endif
         jsr     changePRGBank
         jmp     initRam
+
+.if NWC = 1
+        lda     #$10
+        jsr     $F1BD
+        lda     #$00
+        jsr     $F1BD
+        jmp     initRam
+
+.include "data/unreferenced_data5_nwc.asm"
+
+.else
 
 .include "data/unreferenced_data5.asm"
 
@@ -7549,8 +7748,10 @@ reset:  cld
         .byte   $00,$00,$00,$00,$00,$00,$00,$00
         .byte   $00
         .byte   $00
-
 ; End of "PRG_chunk3" segment
+
+.endif
+
 .code
 
 
@@ -7558,7 +7759,11 @@ reset:  cld
 
         .addr   nmi
         .addr   reset
+.if NWC = 1
+        .word   $6010
+.else
         .addr   irq
+.endif
 
 ; End of "VECTORS" segment
 .code
