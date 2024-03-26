@@ -582,7 +582,7 @@ gameMode_titleScreen:
         lda     $7005
         sta     generalCounter
 @shuffleSeed:
-        ldx     #$17
+        ldx     #rng_seed
         ldy     #$02
         jsr     generateNextPseudorandomNumber
         dec     generalCounter
