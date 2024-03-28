@@ -1,5 +1,7 @@
         .setcpu "6502"
 
+.include "constants.asm"
+
 tmp1            := $0000
 tmp2            := $0001
 tmp3            := $0002
@@ -234,8 +236,6 @@ highScoreScoresA:= $0730
 highScoreScoresB:= $073C
 highScoreLevels := $0748
 initMagic       := $0750                        ; Initialized to a hard-coded number. When resetting, if not correct number then it knows this is a cold boot
-
-.include "constants.asm"
 
 .feature force_range ; allows -1 vs <-1 (used in orientationTable)
 

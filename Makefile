@@ -1,7 +1,7 @@
 WINDOWS := $(shell which wine ; echo $$?)
 UNAME_S := $(shell uname -s)
 
-tetris_obj := main.o tetris-ram.o tetris.o
+tetris_obj := tetris-ram.o tetris.o
 cc65Path := cc65
 
 # Hack for OSX
@@ -15,7 +15,7 @@ CA65 := $(cc65Path)/bin/ca65
 LD65 := $(cc65Path)/bin/ld65
 nesChrEncode := python3 tools/nes-util/nes_chr_encode.py
 
-tetris.nes: tetris.o main.o tetris-ram.o
+tetris.nes: tetris.o tetris-ram.o
 
 tetris:= tetris.nes
 

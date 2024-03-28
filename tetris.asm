@@ -18,6 +18,8 @@ INES_SRAM   = 0 ; 1 = battery backed SRAM at $6000-7FFF
 .byte (INES_MAPPER & %11110000)
 .byte $0, $0, $0, $0, $0, $0, $0, $0 ; padding
 
+; PRG segments
+.include "main.asm"
 
 .segment "CHR"
 .incbin "gfx/title_menu_tileset.chr"
